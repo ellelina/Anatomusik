@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useState, FormEvent, useEffect, useCallback } from "react";
+import { useState, FormEvent, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { SearchTrackResult, TrackAnalysis } from "@/lib/types";
 import RecommendPanel from "@/components/RecommendPanel";
@@ -14,6 +14,14 @@ import AppNav from "@/components/AppNav";
 type Stage = "idle" | "searching" | "results" | "analyzing" | "analyzed";
 
 export default function SearchPage() {
+  return (
+    <Suspense>
+      <SearchPageInner />
+    </Suspense>
+  );
+}
+
+function SearchPageInner() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") || "");
   const [stage, setStage] = useState<Stage>("idle");
