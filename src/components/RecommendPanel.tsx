@@ -83,7 +83,7 @@ export default function RecommendPanel({ track }: Props) {
         // URI scheme triggers Spotify app and auto-plays; open web URL as fallback
         window.location.href = target.uri;
         if (target.spotifyUrl) {
-          setTimeout(() => window.open(target.spotifyUrl, "_blank"), 800);
+          setTimeout(() => window.open(target.spotifyUrl!, "_blank"), 800);
         }
       } else if (target?.spotifyUrl) {
         window.open(target.spotifyUrl, "_blank");

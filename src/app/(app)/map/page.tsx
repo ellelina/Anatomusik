@@ -396,8 +396,9 @@ export default function MapPage() {
       {!isMobile && tooltipText && (
         <div
           className="fixed z-30 pointer-events-none rounded-xl px-3 py-2 shadow-2xl animate-fade-in max-w-[260px]"
-          style={{ background: "rgba(9,7,26,0.95)", border: "1px solid rgba(180,200,255,0.1)" }}
           style={{
+            background: "rgba(9,7,26,0.95)",
+            border: "1px solid rgba(180,200,255,0.1)",
             left: Math.min(tooltipPos.x + 12, window.innerWidth - 280),
             top: Math.min(tooltipPos.y + 12, window.innerHeight - 60),
           }}
