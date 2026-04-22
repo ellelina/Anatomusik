@@ -176,12 +176,16 @@ export default function AnatomyPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="e.g. Redbone by Childish Gambino"
-          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-600 focus:outline-none focus:border-blue-500/50 transition-colors"
+          className="flex-1 rounded-xl px-4 py-3 text-white placeholder-neutral-600 focus:outline-none transition-colors"
+          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(180,200,255,0.1)" }}
+          onFocus={e => (e.currentTarget.style.borderColor = "rgba(180,200,255,0.4)")}
+          onBlur={e => (e.currentTarget.style.borderColor = "rgba(180,200,255,0.1)")}
         />
         <button
           type="submit"
           disabled={stage === "searching" || !query.trim()}
-          className="px-6 py-3 rounded-xl bg-blue-500/20 border border-blue-500/30 text-blue-300 font-medium text-sm hover:bg-blue-500/30 transition-colors disabled:opacity-40"
+          className="px-6 py-3 rounded-xl font-medium text-sm hover:brightness-125 transition-all disabled:opacity-40"
+          style={{ background: "rgba(150,180,255,0.08)", border: "1px solid rgba(180,200,255,0.25)", color: "rgba(180,200,255,0.85)" }}
         >
           {stage === "searching" ? "Searching..." : "Search"}
         </button>
@@ -190,7 +194,7 @@ export default function AnatomyPage() {
       {/* Search spinner */}
       {stage === "searching" && (
         <div className="text-center py-8">
-          <div className="inline-block w-6 h-6 border-2 border-white/20 border-t-blue-400 rounded-full animate-spin mb-3" />
+          <div className="inline-block w-6 h-6 border-2 border-white/20 border-t-[rgba(160,184,255,0.9)] rounded-full animate-spin mb-3" />
           <p className="text-neutral-500 text-sm">Searching Spotify...</p>
         </div>
       )}
@@ -203,7 +207,7 @@ export default function AnatomyPage() {
               key={track.id}
               onClick={() => handleSelect(track)}
               disabled={stage === "analyzing"}
-              className="text-left flex gap-3 rounded-xl p-4 bg-white/5 border border-white/10 hover:bg-white/[0.07] hover:border-blue-500/30 transition-colors disabled:opacity-50"
+              className="text-left flex gap-3 rounded-xl p-4 bg-white/5 border border-white/10 hover:bg-white/[0.07] hover:border-[rgba(180,200,255,0.25)] transition-colors disabled:opacity-50"
             >
               {track.albumImage && (
                 <img src={track.albumImage} alt="" className="w-12 h-12 rounded-lg flex-shrink-0 object-cover" />
@@ -342,7 +346,8 @@ export default function AnatomyPage() {
                         {/* Decorative waveform bars */}
                         <div className="flex items-end gap-[2px] h-8 mb-4">
                           {Array.from({ length: 32 }).map((_, bi) => {
-                            const height = 20 + Math.sin(bi * 0.7 + i * 2) * 15 + Math.random() * 10;
+                            const seed = Math.sin(bi * 1.3 + i * 7.4 + layer.presencePercent) * 10000;
+                            const height = 20 + Math.sin(bi * 0.7 + i * 2) * 15 + (seed - Math.floor(seed)) * 10;
                             return (
                               <div
                                 key={bi}
@@ -476,7 +481,8 @@ export default function AnatomyPage() {
               {!showSimilar ? (
                 <button
                   onClick={() => setShowSimilar(true)}
-                  className="w-full text-center px-4 py-3 rounded-xl bg-blue-500/15 border border-blue-500/25 text-blue-300 font-medium text-sm hover:bg-blue-500/25 transition-colors"
+                  className="w-full text-center px-4 py-3 rounded-xl font-medium text-sm transition-all hover:brightness-125"
+                  style={{ background: "rgba(150,180,255,0.08)", border: "1px solid rgba(180,200,255,0.25)", color: "rgba(180,200,255,0.85)" }}
                 >
                   Find 5 songs with the same sound anatomy as &ldquo;{trackAnalysis.trackName}&rdquo;
                 </button>
@@ -499,7 +505,7 @@ function Nav() {
 
 function TrackHeader({ track, analysis }: { track: SearchTrackResult; analysis: TrackAnalysis | null }) {
   return (
-    <div className="flex gap-4 p-5 rounded-xl bg-white/5 border border-blue-500/20">
+    <div className="flex gap-4 p-5 rounded-xl" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(180,200,255,0.15)" }}>
       {track.albumImage && (
         <img src={track.albumImage} alt="" className="w-16 h-16 rounded-lg flex-shrink-0 object-cover" />
       )}
@@ -512,7 +518,7 @@ function TrackHeader({ track, analysis }: { track: SearchTrackResult; analysis: 
         </p>
         {analysis && (
           <div className="flex flex-wrap items-center gap-2 mt-2">
-            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300">
+            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(150,180,255,0.1)", color: "rgba(180,200,255,0.85)" }}>
               {analysis.estimatedBpm} BPM
               <span className="font-normal text-blue-400/60 ml-1">
                 {bpmHuman(analysis.estimatedBpm)}

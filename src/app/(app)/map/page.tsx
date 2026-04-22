@@ -298,7 +298,7 @@ export default function MapPage() {
 
   if (stage === "error") {
     return (
-      <div className="fixed inset-0 bg-[#0a0a0a] flex items-center justify-center">
+      <div className="fixed inset-0 flex items-center justify-center" style={{ background: "radial-gradient(ellipse at 50% 30%, #09071a 0%, #05040f 100%)" }}>
         <div className="text-center">
           <p className="text-red-400 text-lg font-medium mb-2">Something went wrong</p>
           <p className="text-neutral-500 mb-4">{error}</p>
@@ -320,7 +320,7 @@ export default function MapPage() {
     : 16;
 
   return (
-    <div className="fixed inset-0 bg-[#0a0a0a] overflow-hidden">
+    <div className="fixed inset-0 overflow-hidden" style={{ background: "radial-gradient(ellipse at 50% 30%, #09071a 0%, #05040f 100%)" }}>
       <NavBar />
       <FilterBar
         activeFilter={activeFilter}
@@ -338,8 +338,8 @@ export default function MapPage() {
       {/* Loading overlay */}
       {(stage === "loading" || stage === "analyzing") && (
         <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-          <div className="text-center bg-[#0a0a0a]/80 backdrop-blur-sm rounded-2xl px-8 py-6">
-            <div className="inline-block w-8 h-8 border-2 border-white/20 border-t-emerald-400 rounded-full animate-spin mb-3" />
+          <div className="text-center backdrop-blur-sm rounded-2xl px-8 py-6" style={{ background: "rgba(9,7,26,0.85)", border: "1px solid rgba(180,200,255,0.08)" }}>
+            <div className="inline-block w-8 h-8 border-2 border-white/20 border-t-[rgba(160,184,255,0.9)] rounded-full animate-spin mb-3" />
             <p className="text-white text-sm font-medium">
               {stage === "loading"
                 ? "Fetching your Spotify data..."
@@ -354,9 +354,9 @@ export default function MapPage() {
 
       {/* Radar loading indicator */}
       {radarMode && radarLoading && (
-        <div className="fixed bottom-4 right-4 z-20 bg-neutral-900/90 backdrop-blur-sm border border-emerald-500/20 rounded-xl px-3 py-2 flex items-center gap-2">
-          <div className="w-3 h-3 border border-emerald-400/40 border-t-emerald-400 rounded-full animate-spin" />
-          <span className="text-xs text-emerald-400">Finding discoveries...</span>
+        <div className="fixed bottom-4 right-4 z-20 backdrop-blur-sm rounded-xl px-3 py-2 flex items-center gap-2" style={{ background: "rgba(9,7,26,0.9)", border: "1px solid rgba(180,200,255,0.15)" }}>
+          <div className="w-3 h-3 border border-[rgba(160,184,255,0.3)] border-t-[rgba(160,184,255,0.9)] rounded-full animate-spin" />
+          <span className="text-xs" style={{ color: "rgba(180,200,255,0.7)" }}>Finding discoveries...</span>
         </div>
       )}
 
@@ -395,7 +395,8 @@ export default function MapPage() {
       {/* Generic text tooltip (for timeline, radar, energy hovers) */}
       {!isMobile && tooltipText && (
         <div
-          className="fixed z-30 pointer-events-none bg-neutral-900 border border-white/10 rounded-xl px-3 py-2 shadow-2xl animate-fade-in max-w-[260px]"
+          className="fixed z-30 pointer-events-none rounded-xl px-3 py-2 shadow-2xl animate-fade-in max-w-[260px]"
+          style={{ background: "rgba(9,7,26,0.95)", border: "1px solid rgba(180,200,255,0.1)" }}
           style={{
             left: Math.min(tooltipPos.x + 12, window.innerWidth - 280),
             top: Math.min(tooltipPos.y + 12, window.innerHeight - 60),

@@ -44,9 +44,9 @@ const TOGGLES: {
     key: "radar",
     label: "Radar",
     activeLabel: "Radar",
-    color: "bg-emerald-500/20",
-    dotColor: "bg-emerald-400",
-    borderColor: "border-emerald-500/40",
+    color: "bg-violet-500/20",
+    dotColor: "bg-violet-400",
+    borderColor: "border-violet-500/40",
   },
   {
     key: "energy",

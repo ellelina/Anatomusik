@@ -22,28 +22,6 @@ export default function AnalysisResults({ result, trackDetails }: Props) {
         </p>
       </section>
 
-      {/* Niche Score */}
-      <section className="flex justify-center">
-        <div className="text-center bg-white/5 border border-white/10 rounded-2xl px-8 py-6">
-          <p className="text-sm font-semibold uppercase tracking-widest text-neutral-500 mb-2">
-            Niche Score
-          </p>
-          <p className="text-5xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-            {result.nicheScore}
-            <span className="text-lg text-neutral-500">/100</span>
-          </p>
-          <p className="text-xs text-neutral-500 mt-1">
-            {result.nicheScore >= 75
-              ? "Extremely niche taste"
-              : result.nicheScore >= 50
-                ? "Eclectic & adventurous"
-                : result.nicheScore >= 25
-                  ? "Balanced mainstream & indie"
-                  : "Mainstream listener"}
-          </p>
-        </div>
-      </section>
-
       {/* Micro-Genres Grid */}
       <section>
         <h2 className="text-sm font-semibold uppercase tracking-widest text-neutral-500 mb-5">
@@ -72,7 +50,7 @@ export default function AnalysisResults({ result, trackDetails }: Props) {
               key={i}
               className="flex gap-3 bg-white/5 border border-white/10 rounded-xl p-4"
             >
-              <span className="text-cyan-400 text-lg leading-none mt-0.5">*</span>
+              <span className="text-lg leading-none mt-0.5" style={{ color: "rgba(180,200,255,0.7)" }}>*</span>
               <p className="text-neutral-300 text-sm leading-relaxed">{insight}</p>
             </li>
           ))}

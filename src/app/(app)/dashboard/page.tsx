@@ -54,7 +54,7 @@ export default function DashboardPage() {
 function LoadingState({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div className="text-center py-20">
-      <div className="inline-block w-10 h-10 border-2 border-white/20 border-t-emerald-400 rounded-full animate-spin mb-6" />
+      <div className="inline-block w-10 h-10 border-2 border-white/20 border-t-[rgba(160,184,255,0.9)] rounded-full animate-spin mb-6" />
       <p className="text-lg font-medium text-white mb-1">{title}</p>
       <p className="text-sm text-neutral-500">{subtitle}</p>
     </div>

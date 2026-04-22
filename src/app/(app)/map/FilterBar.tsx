@@ -27,11 +27,22 @@ export default function FilterBar({ activeFilter, onFilter, hasMatchedGenres }: 
         <button
           key={filter}
           onClick={() => onFilter(filter)}
-          className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+          className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
+            filter === "My genres" && !hasMatchedGenres ? "opacity-40" : ""
+          }`}
+          style={
             activeFilter === filter
-              ? "bg-emerald-500/30 border border-emerald-500/50 text-emerald-300"
-              : "bg-white/5 border border-white/10 text-neutral-400 hover:text-white"
-          } ${filter === "My genres" && !hasMatchedGenres ? "opacity-40" : ""}`}
+              ? {
+                  background: "rgba(150,180,255,0.12)",
+                  borderColor: "rgba(180,200,255,0.35)",
+                  color: "rgba(180,200,255,0.9)",
+                }
+              : {
+                  background: "rgba(255,255,255,0.03)",
+                  borderColor: "rgba(255,255,255,0.08)",
+                  color: "rgba(180,200,255,0.4)",
+                }
+          }
         >
           {filter}
         </button>

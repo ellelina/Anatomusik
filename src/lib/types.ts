@@ -101,7 +101,6 @@ export interface AnalysisResult {
   musicPersonality: string;
   microGenres: MicroGenre[];
   uniqueInsights: string[];
-  nicheScore: number;
   summary: string;
   trackAnalyses: TrackAnalysis[];
   matchedMapGenres: string[];

@@ -12,7 +12,6 @@ import { usePathname } from "next/navigation";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/liked-songs", label: "Liked Songs" },
-  { href: "/playlists", label: "Playlists" },
   { href: "/search", label: "Search" },
   { href: "/map", label: "Scene Map" },
   { href: "/tempo", label: "Tempo Lab" },
@@ -24,10 +23,18 @@ export default function AppNav() {
 
   return (
     <div className="flex items-center justify-between mb-12">
-      <Link href="/" className="text-lg font-bold tracking-tight">
-        <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-          Anatomusik
-        </span>
+      <Link
+        href="/"
+        className="text-lg font-bold tracking-widest uppercase"
+        style={{
+          fontFamily: "var(--font-orbitron), sans-serif",
+          background: "linear-gradient(135deg, #e8f0ff 0%, #c8d8ff 50%, #a0b8ff 100%)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          backgroundClip: "text",
+        }}
+      >
+        Anatomusik
       </Link>
       <div className="flex gap-4 text-sm">
         {NAV_ITEMS.map(({ href, label }) => (
@@ -36,14 +43,21 @@ export default function AppNav() {
             href={href}
             className={`transition-colors ${
               pathname === href
-                ? "text-emerald-400"
-                : "text-neutral-500 hover:text-neutral-300"
+                ? "font-medium"
+                : "hover:text-neutral-300"
             }`}
+            style={{
+              color: pathname === href ? "rgba(180,200,255,0.9)" : "rgba(180,200,255,0.35)",
+            }}
           >
             {label}
           </Link>
         ))}
-        <a href="/api/auth/logout" className="text-neutral-500 hover:text-neutral-300 transition-colors">
+        <a
+          href="/api/auth/logout"
+          className="transition-colors hover:text-neutral-300"
+          style={{ color: "rgba(180,200,255,0.35)" }}
+        >
           Log out
         </a>
       </div>

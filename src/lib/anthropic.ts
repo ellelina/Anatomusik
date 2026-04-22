@@ -67,7 +67,7 @@ ${data.allGenres.join(", ")}
 Respond with ONLY a JSON object (no markdown):
 
 {
-  "musicPersonality": "A creative 2-3 sentence personality profile based on their taste (witty, specific, insightful)",
+  "musicPersonality": "2-3 sentences of precise, factual taste analysis. State the dominant genre clusters, any notable listening patterns or cross-genre tensions in the data, and what that implies about how this person uses music. No metaphors, no flattery, no narrative framing — just accurate description.",
   "microGenres": [
     {
       "name": "Micro-genre name",
@@ -76,9 +76,8 @@ Respond with ONLY a JSON object (no markdown):
       "representativeArtists": ["Artist1", "Artist2"]
     }
   ],
-  "uniqueInsights": ["Interesting observation about unusual patterns"],
-  "nicheScore": 72,
-  "summary": "A 2-3 sentence overall summary",
+  "uniqueInsights": ["One specific, verifiable observation about this listener's data — an unusual genre pairing, a temporal shift, an outlier artist, or a pattern that distinguishes them. One sentence, no hyperbole."],
+  "summary": "2-3 sentences summarizing the key genre findings and any notable divergence between short-term and medium-term listening. Factual and specific — name actual genres and patterns, no embellishment.",
   "matchedMapGenres": ["exact scene name from the list"]
 }
 

@@ -5,7 +5,8 @@
 
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { SearchTrackResult, TrackAnalysis } from "@/lib/types";
 import RecommendPanel from "@/components/RecommendPanel";
 import AppNav from "@/components/AppNav";
@@ -13,24 +14,22 @@ import AppNav from "@/components/AppNav";
 type Stage = "idle" | "searching" | "results" | "analyzing" | "analyzed";
 
 export default function SearchPage() {
-  const [query, setQuery] = useState("");
+  const searchParams = useSearchParams();
+  const [query, setQuery] = useState(searchParams.get("q") || "");
   const [stage, setStage] = useState<Stage>("idle");
   const [results, setResults] = useState<SearchTrackResult[]>([]);
   const [selected, setSelected] = useState<SearchTrackResult | null>(null);
   const [analysis, setAnalysis] = useState<TrackAnalysis | null>(null);
   const [error, setError] = useState("");
 
-  async function handleSearch(e: FormEvent) {
-    e.preventDefault();
-    if (!query.trim()) return;
-
+  const runSearch = useCallback(async (q: string) => {
+    if (!q.trim()) return;
     setStage("searching");
     setError("");
     setAnalysis(null);
     setSelected(null);
-
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`);
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}`);
       if (!res.ok) throw new Error("Search failed");
       const data = await res.json();
       setResults(data.tracks || []);
@@ -39,6 +38,17 @@ export default function SearchPage() {
       setError("Failed to search Spotify. Make sure you're logged in.");
       setStage("idle");
     }
+  }, []);
+
+  // Auto-trigger search when navigated here with ?q= param
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q) runSearch(q);
+  }, [searchParams, runSearch]);
+
+  async function handleSearch(e: FormEvent) {
+    e.preventDefault();
+    runSearch(query);
   }
 
   async function handleSelect(track: SearchTrackResult) {
@@ -83,12 +93,20 @@ export default function SearchPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="e.g. Nights by Frank Ocean"
-            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-600 focus:outline-none focus:border-emerald-500/50 transition-colors"
+            className="flex-1 rounded-xl px-4 py-3 text-white placeholder-neutral-600 focus:outline-none transition-colors"
+          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(180,200,255,0.1)" }}
+          onFocus={e => (e.currentTarget.style.borderColor = "rgba(180,200,255,0.4)")}
+          onBlur={e => (e.currentTarget.style.borderColor = "rgba(180,200,255,0.1)")}
           />
           <button
             type="submit"
             disabled={stage === "searching" || !query.trim()}
-            className="px-6 py-3 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-medium text-sm hover:bg-emerald-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-6 py-3 rounded-xl font-medium text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-125"
+            style={{
+              background: "rgba(150,180,255,0.08)",
+              border: "1px solid rgba(180,200,255,0.25)",
+              color: "rgba(180,200,255,0.85)",
+            }}
           >
             {stage === "searching" ? "Searching..." : "Search"}
           </button>
@@ -102,7 +120,7 @@ export default function SearchPage() {
       {/* Searching spinner */}
       {stage === "searching" && (
         <div className="text-center py-16">
-          <div className="inline-block w-8 h-8 border-2 border-white/20 border-t-emerald-400 rounded-full animate-spin mb-4" />
+          <div className="inline-block w-8 h-8 border-2 border-white/20 border-t-[rgba(160,184,255,0.9)] rounded-full animate-spin mb-4" />
           <p className="text-neutral-400 text-sm">Searching Spotify...</p>
         </div>
       )}
@@ -119,7 +137,10 @@ export default function SearchPage() {
                 key={track.id}
                 onClick={() => handleSelect(track)}
                 disabled={stage === "analyzing"}
-                className="text-left flex gap-3 rounded-xl p-4 bg-white/5 border border-white/10 hover:bg-white/[0.07] hover:border-emerald-500/30 transition-colors disabled:opacity-50"
+                className="text-left flex gap-3 rounded-xl p-4 transition-all disabled:opacity-50"
+                style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(180,200,255,0.08)" }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(180,200,255,0.25)")}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(180,200,255,0.08)")}
               >
                 {track.albumImage && (
                   <img
@@ -158,7 +179,7 @@ export default function SearchPage() {
       {/* Analyzing spinner */}
       {stage === "analyzing" && selected && (
         <div className="mt-8 text-center py-12 rounded-xl bg-white/5 border border-white/10">
-          <div className="inline-block w-8 h-8 border-2 border-white/20 border-t-emerald-400 rounded-full animate-spin mb-4" />
+          <div className="inline-block w-8 h-8 border-2 border-white/20 border-t-[rgba(160,184,255,0.9)] rounded-full animate-spin mb-4" />
           <p className="text-white font-medium text-sm">
             Analyzing &ldquo;{selected.name}&rdquo;...
           </p>
@@ -177,7 +198,7 @@ export default function SearchPage() {
           </button>
 
           {/* Track card */}
-          <div className="rounded-xl p-5 bg-white/5 border border-emerald-500/30">
+          <div className="rounded-xl p-5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(180,200,255,0.2)" }}>
             <div className="flex gap-4">
               {selected.albumImage && (
                 <img
@@ -194,7 +215,7 @@ export default function SearchPage() {
                       {(analysis.artists || []).join(", ")}
                     </p>
                   </div>
-                  <span className="flex-shrink-0 text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300">
+                  <span className="flex-shrink-0 text-xs font-mono font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(150,180,255,0.1)", color: "rgba(180,200,255,0.85)" }}>
                     {analysis.estimatedBpm} BPM
                   </span>
                 </div>
