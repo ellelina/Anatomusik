@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Inter, DM_Sans, DM_Mono } from "next/font/google";
+import { Inter, DM_Sans, DM_Mono, Orbitron } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 const dmSans = DM_Sans({ subsets: ["latin"], weight: ["200", "400", "500"], variable: "--font-dm-sans" });
 const dmMono = DM_Mono({ subsets: ["latin"], weight: ["300"], variable: "--font-dm-mono" });
+const orbitron = Orbitron({ subsets: ["latin"], weight: ["400", "900"], variable: "--font-orbitron" });
 
 export const metadata: Metadata = {
   title: "Anatomusik | Discover Your Niche Music Taste",
@@ -19,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} ${dmSans.variable} ${dmMono.variable} bg-neutral-950 text-white min-h-screen`}>
+      <body className={`${inter.className} ${dmSans.variable} ${dmMono.variable} ${orbitron.variable} bg-neutral-950 text-white min-h-screen`}>
         {children}
       </body>
     </html>
