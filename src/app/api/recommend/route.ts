@@ -27,7 +27,7 @@ Micro-genres: ${body.genres.join(", ")}
 BPM: ~${body.bpm}
 Mood: ${body.mood}
 
-Recommend 10 songs that are the best possible match for this track's micro-genres, BPM, and sonic feel — while also introducing the user to artists they likely haven't heard of.
+Recommend 5 songs that are the best possible match for this track's micro-genres, BPM, and sonic feel — while also introducing the user to artists they likely haven't heard of.
 
 Respond with ONLY a JSON object (no markdown):
 
@@ -44,7 +44,7 @@ Respond with ONLY a JSON object (no markdown):
 }
 
 Rules:
-- All 10 songs must be real tracks that exist on Spotify
+- All 5 songs must be real tracks that exist on Spotify
 - Stay within ±15 BPM of ${body.bpm}
 - Match the micro-genre feel precisely — not just broad genre. If the song is "vapor soul", don't recommend generic R&B
 - Prioritize lesser-known and niche artists. Avoid mainstream/top-40 artists. Dig deep — the more obscure and fitting, the better
@@ -55,7 +55,7 @@ Rules:
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 2000,
+      max_tokens: 1000,
       messages: [{ role: "user", content: prompt }],
     });
 

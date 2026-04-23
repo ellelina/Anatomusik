@@ -118,38 +118,41 @@ export default function AnatomyPage() {
     setShowSimilar(false);
 
     try {
-      // Step 1: get basic analysis (BPM, mood, genres)
-      const analyzeRes = await fetch("/api/search/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: track.id,
-          name: track.name,
-          artists: track.artists,
-          genres: track.genres,
+      // Both calls fire in parallel — anatomy uses original track data, analyze enriches genres/BPM
+      const [analyzeRes, anatomyRes] = await Promise.all([
+        fetch("/api/search/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: track.id,
+            name: track.name,
+            artists: track.artists,
+            genres: track.genres,
+          }),
         }),
-      });
-      if (!analyzeRes.ok) throw new Error();
-      const analyzeData = await analyzeRes.json();
+        fetch("/api/anatomy/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: track.id,
+            trackName: track.name,
+            artists: track.artists,
+            genres: track.genres,
+            bpm: 0,
+            mood: "",
+          }),
+        }),
+      ]);
+
+      if (!analyzeRes.ok || !anatomyRes.ok) throw new Error();
+      const [analyzeData, anatomyData] = await Promise.all([
+        analyzeRes.json(),
+        anatomyRes.json(),
+      ]);
+
       const ta: TrackAnalysis = analyzeData.track;
       setTrackAnalysis(ta);
-
-      // Step 2: get anatomy breakdown (passes track ID for Spotify audio features)
-      const anatomyRes = await fetch("/api/anatomy/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: track.id,
-          trackName: ta.trackName,
-          artists: ta.artists,
-          genres: ta.genres,
-          bpm: ta.estimatedBpm,
-          mood: ta.mood,
-        }),
-      });
-      if (!anatomyRes.ok) throw new Error();
-      const anatomyData: AnatomyResult = await anatomyRes.json();
-      setAnatomy(anatomyData);
+      setAnatomy(anatomyData as AnatomyResult);
       setStage("done");
     } catch {
       setStage("results");
