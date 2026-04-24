@@ -1,17 +1,19 @@
 /*
- * Shared analysis context — fetches Spotify data + Claude analysis once,
- * caches in memory and sessionStorage, shares across all pages.
- * Eliminates duplicate API calls when navigating between tabs.
+ * Shared analysis context — streams GET /api/analyze which emits two SSE events:
+ *   1. "spotify" → recentTrackDetails available, stage → "analyzing"
+ *   2. "analysis" → full AnalysisResult available, stage → "done"
+ * This lets the dashboard show the track list within ~4s while Claude
+ * continues in the background for another 8-15s.
  * Usage: wrap authenticated pages in <AnalysisProvider>, consume via useAnalysis()
  */
 
 "use client";
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
-import { SpotifyData, AnalysisResult, RecentTrackDetail } from "./types";
+import { AnalysisResult, RecentTrackDetail } from "./types";
 import { saveAnalysis, loadAnalysis } from "./analysis-cache";
 
-type Stage = "idle" | "loading-spotify" | "analyzing" | "done" | "error";
+export type Stage = "idle" | "loading-spotify" | "analyzing" | "done" | "error";
 
 interface AnalysisContextValue {
   stage: Stage;
@@ -40,7 +42,6 @@ export function AnalysisProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState("");
 
   const fetchAnalysis = useCallback(async () => {
-    // Check sessionStorage cache first
     const cached = loadAnalysis();
     if (cached) {
       setResult(cached);
@@ -48,31 +49,52 @@ export function AnalysisProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    try {
-      setStage("loading-spotify");
-      const spotifyRes = await fetch("/api/spotify/data");
-      if (!spotifyRes.ok) {
-        const err = await spotifyRes.json();
-        throw new Error(err.error || "Failed to fetch Spotify data");
-      }
-      const spotifyData: SpotifyData = await spotifyRes.json();
-      setTrackDetails(spotifyData.recentTrackDetails || []);
+    setStage("loading-spotify");
+    setError("");
 
-      setStage("analyzing");
-      const analyzeRes = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(spotifyData),
-      });
-      if (!analyzeRes.ok) {
-        const err = await analyzeRes.json();
+    try {
+      const res = await fetch("/api/analyze");
+
+      // Non-200 before streaming starts (e.g. 401)
+      if (!res.ok) {
+        const err = await res.json();
         throw new Error(err.error || "Analysis failed");
       }
-      const analysis: AnalysisResult = await analyzeRes.json();
 
-      setResult(analysis);
-      saveAnalysis(analysis);
-      setStage("done");
+      if (!res.body) throw new Error("No response body");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // SSE events are separated by double newline
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() ?? "";
+
+        for (const part of parts) {
+          const line = part.trim();
+          if (!line.startsWith("data: ")) continue;
+          const payload = JSON.parse(line.slice(6));
+
+          if (payload.type === "spotify") {
+            // Spotify done — show track details immediately, keep loading genre analysis
+            setTrackDetails(payload.recentTrackDetails || []);
+            setStage("analyzing");
+          } else if (payload.type === "analysis") {
+            setResult(payload.analysis);
+            saveAnalysis(payload.analysis);
+            setStage("done");
+          } else if (payload.type === "error") {
+            throw new Error(payload.error);
+          }
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setStage("error");

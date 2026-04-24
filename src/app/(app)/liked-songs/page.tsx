@@ -1,17 +1,24 @@
 /*
  * Liked Songs page — browse saved tracks with per-song genre/BPM analysis.
  * Loads 50 tracks at a time with pagination.
+ * After analysis completes, fetches a micro-genre profile card in the background.
  * Access: /liked-songs
  */
 
 "use client";
 
 import { useEffect, useState } from "react";
-import { PlaylistTrackDetail, TrackAnalysis } from "@/lib/types";
+import { PlaylistTrackDetail, TrackAnalysis, MicroGenre } from "@/lib/types";
 import TrackList from "@/components/TrackList";
 import AppNav from "@/components/AppNav";
 
 type Stage = "loading" | "analyzing" | "done" | "error";
+
+interface ProfileResult {
+  musicPersonality: string;
+  microGenres: MicroGenre[];
+  summary: string;
+}
 
 export default function LikedSongsPage() {
   const [stage, setStage] = useState<Stage>("loading");
@@ -20,6 +27,8 @@ export default function LikedSongsPage() {
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
   const [error, setError] = useState("");
+  const [profile, setProfile] = useState<ProfileResult | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   const pageSize = 50;
 
@@ -31,6 +40,7 @@ export default function LikedSongsPage() {
     setError("");
     setTrackAnalyses([]);
     setTrackDetails([]);
+    setProfile(null);
     setOffset(newOffset);
 
     try {
@@ -57,9 +67,30 @@ export default function LikedSongsPage() {
       const analysis = await analyzeRes.json();
       setTrackAnalyses(analysis.tracks || []);
       setStage("done");
+
+      // Background: fetch micro-genre profile without blocking the UI
+      fetchProfile(data.tracks);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setStage("error");
+    }
+  }
+
+  async function fetchProfile(tracks: PlaylistTrackDetail[]) {
+    setProfileLoading(true);
+    try {
+      const res = await fetch("/api/saved-tracks/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tracks }),
+      });
+      if (!res.ok) return;
+      const data: ProfileResult = await res.json();
+      setProfile(data);
+    } catch {
+      // Fail silently — profile is optional
+    } finally {
+      setProfileLoading(false);
     }
   }
 
@@ -99,6 +130,31 @@ export default function LikedSongsPage() {
 
       {stage === "done" && trackAnalyses.length > 0 && (
         <>
+          {/* Micro-genre profile card — shown above track list */}
+          {profileLoading && !profile && (
+            <div className="bg-white/[0.03] border border-white/10 rounded-xl p-5 mb-6 animate-pulse">
+              <div className="h-3 bg-white/10 rounded w-3/4" />
+            </div>
+          )}
+
+          {profile && (
+            <div className="bg-white/[0.03] border border-white/10 rounded-xl p-5 mb-6">
+              <p className="text-neutral-300 text-sm leading-relaxed mb-3">
+                {profile.musicPersonality}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {profile.microGenres.slice(0, 3).map((g) => (
+                  <span
+                    key={g.name}
+                    className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300"
+                  >
+                    {g.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           <TrackList
             tracks={trackAnalyses}
             trackDetails={trackDetails.map((t) => ({

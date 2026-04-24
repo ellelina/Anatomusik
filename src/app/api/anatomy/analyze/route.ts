@@ -6,9 +6,9 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
+import { client, MODEL, parseJson } from "@/lib/anthropic";
+import type { AnatomyResult } from "@/lib/types";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const SPOTIFY_API_BASE = "https://api.spotify.com/v1";
 
 // Spotify key integer → note name
@@ -157,34 +157,28 @@ Rules:
 ${hasRealData ? "- For key, you MUST use the confirmed key value provided above" : "- Since these are estimates, prefix keyFeel with 'estimated — '"}`;
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2048,
+      model: MODEL,
+      max_tokens: 1600,
       messages: [{ role: "user", content: prompt }],
     });
 
     const text = response.content[0].type === "text" ? response.content[0].text : "";
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return NextResponse.json({ error: "Failed to parse anatomy." }, { status: 500 });
-    }
-
-    const claudeResult = JSON.parse(jsonMatch[0]);
+    const claudeResult: AnatomyResult = parseJson(text);
 
     // Step 3: Override Claude values with Spotify ground truth where available
     if (hasRealData && audioFeatures) {
+      const confirmedKey = convertKey(audioFeatures.key, audioFeatures.mode);
       claudeResult.spotifyData = {
-        tempo: realBpm,
-        key: realKey,
-        energy,
-        acousticness,
-        danceability,
-        instrumentalness,
-        loudness: Math.round((loudness || 0) * 10) / 10,
-        valence: Math.round((audioFeatures.valence || 0) * 100),
+        tempo: Math.round(audioFeatures.tempo),
+        key: confirmedKey,
+        energy: Math.round(audioFeatures.energy * 100),
+        acousticness: Math.round(audioFeatures.acousticness * 100),
+        danceability: Math.round(audioFeatures.danceability * 100),
+        instrumentalness: Math.round(audioFeatures.instrumentalness * 100),
+        loudness: Math.round(audioFeatures.loudness * 10) / 10,
+        valence: Math.round(audioFeatures.valence * 100),
       };
-      // Override key with Spotify's confirmed value
-      claudeResult.key = realKey;
-      // Override dynamic range / texture with derived values
+      claudeResult.key = confirmedKey;
       claudeResult.dynamicRange = deriveDynamicRange(audioFeatures.loudness);
       claudeResult.texture = deriveTexture(audioFeatures.instrumentalness, audioFeatures.acousticness);
     }

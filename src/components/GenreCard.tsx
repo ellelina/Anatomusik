@@ -7,11 +7,39 @@ const confidenceColors = {
   low: "border-purple-500/50 bg-purple-500/5",
 };
 
-const confidenceBadge = {
-  high: "bg-emerald-500/20 text-emerald-300",
-  medium: "bg-amber-500/20 text-amber-300",
-  low: "bg-purple-500/20 text-purple-300",
+// Filled dot color per confidence level
+const dotFilled = {
+  high: "#34d399",   // emerald-400
+  medium: "#fbbf24", // amber-400
+  low: "#c084fc",    // purple-400
 };
+
+// Number of filled dots per level (out of 3)
+const dotCount = { high: 3, medium: 2, low: 1 };
+
+function ConfidenceDots({ level }: { level: "high" | "medium" | "low" }) {
+  const filled = dotCount[level];
+  const color = dotFilled[level];
+  return (
+    <div className="flex items-center gap-1 flex-shrink-0 mt-1">
+      {[0, 1, 2].map((i) =>
+        i < filled ? (
+          <span
+            key={i}
+            className="block rounded-full"
+            style={{ width: 6, height: 6, backgroundColor: color }}
+          />
+        ) : (
+          <span
+            key={i}
+            className="block rounded-full"
+            style={{ width: 6, height: 6, border: `1.5px solid ${color}`, opacity: 0.4 }}
+          />
+        )
+      )}
+    </div>
+  );
+}
 
 export default function GenreCard({ genre }: { genre: MicroGenre }) {
   return (
@@ -20,11 +48,7 @@ export default function GenreCard({ genre }: { genre: MicroGenre }) {
     >
       <div className="flex items-start justify-between gap-2 mb-3">
         <h3 className="text-lg font-bold text-white">{genre.name}</h3>
-        <span
-          className={`text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${confidenceBadge[genre.confidence]}`}
-        >
-          {genre.confidence}
-        </span>
+        <ConfidenceDots level={genre.confidence} />
       </div>
       <p className="text-sm text-neutral-400 mb-4 leading-relaxed">
         {genre.description}

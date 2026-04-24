@@ -5,9 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+import { client, HAIKU_MODEL, parseJson } from "@/lib/anthropic";
 
 interface BreakdownRequest {
   trackName: string;
@@ -47,18 +45,13 @@ Rules:
 - "Swung" means beats landing slightly late on purpose; "straight" means perfectly even timing`;
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1024,
+      model: HAIKU_MODEL,
+      max_tokens: 700,
       messages: [{ role: "user", content: prompt }],
     });
 
     const text = response.content[0].type === "text" ? response.content[0].text : "";
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return NextResponse.json({ error: "Failed to parse response" }, { status: 500 });
-    }
-
-    return NextResponse.json(JSON.parse(jsonMatch[0]));
+    return NextResponse.json(parseJson(text));
   } catch (err) {
     console.error("Tempo breakdown error:", err);
     return NextResponse.json({ error: "Failed to generate breakdown." }, { status: 500 });

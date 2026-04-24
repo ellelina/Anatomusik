@@ -8,6 +8,7 @@
 
 import AnalysisResults from "@/components/AnalysisResults";
 import AppNav from "@/components/AppNav";
+import { GenreCardSkeleton } from "@/components/SkeletonLoader";
 import { useAnalysis } from "@/lib/AnalysisContext";
 
 export default function DashboardPage() {
@@ -17,24 +18,15 @@ export default function DashboardPage() {
     <main className="min-h-screen px-6 py-12 max-w-4xl mx-auto">
       <AppNav />
 
-      {stage === "loading-spotify" && (
-        <LoadingState
-          title="Fetching your Spotify data..."
-          subtitle="Pulling your top artists, tracks, and recently played"
-        />
-      )}
+      {stage === "loading-spotify" && <GenreGridSkeleton />}
 
-      {stage === "analyzing" && (
-        <LoadingState
-          title="Analyzing your taste with AI..."
-          subtitle="Identifying micro-genres, BPM, and per-song patterns"
-        />
-      )}
+      {stage === "analyzing" && <GenreGridSkeleton />}
 
       {stage === "error" && (
         <div className="text-center py-20">
-          <p className="text-red-400 text-lg font-medium mb-2">Something went wrong</p>
-          <p className="text-neutral-500 mb-6">{error}</p>
+          <p className="text-red-400 text-lg font-medium mb-3">
+            {error || "Something went wrong"}
+          </p>
           <a
             href="/api/auth/login"
             className="inline-block bg-white/10 hover:bg-white/15 text-white px-6 py-2 rounded-full text-sm transition-colors"
@@ -51,12 +43,15 @@ export default function DashboardPage() {
   );
 }
 
-function LoadingState({ title, subtitle }: { title: string; subtitle: string }) {
+function GenreGridSkeleton() {
   return (
-    <div className="text-center py-20">
-      <div className="inline-block w-10 h-10 border-2 border-white/20 border-t-[rgba(160,184,255,0.9)] rounded-full animate-spin mb-6" />
-      <p className="text-lg font-medium text-white mb-1">{title}</p>
-      <p className="text-sm text-neutral-500">{subtitle}</p>
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <GenreCardSkeleton />
+        <GenreCardSkeleton />
+        <GenreCardSkeleton />
+        <GenreCardSkeleton />
+      </div>
     </div>
   );
 }

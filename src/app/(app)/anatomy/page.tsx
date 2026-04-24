@@ -278,6 +278,9 @@ export default function AnatomyPage() {
               Sound Layers
             </h2>
 
+            {/* Stacked mix bar — each segment proportional to presencePercent */}
+            <StackedMixBar layers={anatomy.layers} />
+
             <div className="space-y-2">
               {anatomy.layers.map((layer, i) => {
                 const colors = TYPE_COLORS[layer.type] || TYPE_COLORS.melodic;
@@ -442,8 +445,8 @@ export default function AnatomyPage() {
               <div className="grid grid-cols-2 gap-3">
                 <MetricCard
                   label="Tempo"
-                  value={`${anatomy.confirmedBpm || trackAnalysis.estimatedBpm} BPM`}
-                  detail={bpmHuman(anatomy.confirmedBpm || trackAnalysis.estimatedBpm)}
+                  value={`${anatomy.confirmedBpm ?? trackAnalysis.estimatedBpm ?? "?"} BPM`}
+                  detail={bpmHuman(anatomy.confirmedBpm ?? trackAnalysis.estimatedBpm ?? 0)}
                   estimated={!anatomy.hasRealData}
                 />
                 <MetricCard
@@ -522,9 +525,9 @@ function TrackHeader({ track, analysis }: { track: SearchTrackResult; analysis: 
         {analysis && (
           <div className="flex flex-wrap items-center gap-2 mt-2">
             <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(150,180,255,0.1)", color: "rgba(180,200,255,0.85)" }}>
-              {analysis.estimatedBpm} BPM
+              {analysis.estimatedBpm ?? "?"} BPM
               <span className="font-normal text-blue-400/60 ml-1">
-                {bpmHuman(analysis.estimatedBpm)}
+                {analysis.estimatedBpm != null ? bpmHuman(analysis.estimatedBpm) : ""}
               </span>
             </span>
             <span className="text-xs italic px-2 py-0.5 rounded-full bg-white/5 text-neutral-400">
@@ -575,6 +578,58 @@ function MiniStat({ label, value }: { label: string; value: string }) {
     <div className="flex items-center gap-1.5">
       <span className="text-[10px] text-neutral-600">{label}</span>
       <span className="text-[10px] font-mono font-semibold text-neutral-400">{value}</span>
+    </div>
+  );
+}
+
+function StackedMixBar({ layers }: { layers: SoundLayer[] }) {
+  const [tooltip, setTooltip] = useState<{ name: string; pct: number; x: number } | null>(null);
+
+  const total = layers.reduce((sum, l) => sum + l.presencePercent, 0) || 1;
+
+  return (
+    <div className="relative mb-5">
+      <div className="flex w-full h-3 rounded-full overflow-hidden">
+        {layers.map((layer, i) => {
+          const colors = TYPE_COLORS[layer.type] || TYPE_COLORS.melodic;
+          const widthPct = (layer.presencePercent / total) * 100;
+          return (
+            <div
+              key={i}
+              className="h-full relative cursor-default"
+              style={{
+                width: `${widthPct}%`,
+                backgroundColor: colors.barFill,
+                borderRight: i < layers.length - 1 ? "1px solid rgba(255,255,255,0.10)" : "none",
+              }}
+              onMouseEnter={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const barRect = e.currentTarget.parentElement!.getBoundingClientRect();
+                setTooltip({
+                  name: layer.name,
+                  pct: layer.presencePercent,
+                  x: rect.left - barRect.left + rect.width / 2,
+                });
+              }}
+              onMouseLeave={() => setTooltip(null)}
+            />
+          );
+        })}
+      </div>
+
+      {/* Hover tooltip */}
+      {tooltip && (
+        <div
+          className="absolute bottom-full mb-1.5 -translate-x-1/2 pointer-events-none z-10"
+          style={{ left: tooltip.x }}
+        >
+          <div className="rounded-lg px-2.5 py-1.5 text-xs font-medium whitespace-nowrap shadow-lg"
+            style={{ background: "#1a1730", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(200,220,255,0.9)" }}
+          >
+            {tooltip.name} &middot; {tooltip.pct}%
+          </div>
+        </div>
+      )}
     </div>
   );
 }

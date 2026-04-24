@@ -85,12 +85,12 @@ export default function TempoLabPage() {
   // Compute BPM zone distribution from track analyses
   const zoneData = useMemo((): BpmZoneData[] => {
     const tracks = analysis?.trackAnalyses || [];
-    const withBpm = tracks.filter((t) => t.estimatedBpm > 0);
+    const withBpm = tracks.filter((t) => t.estimatedBpm != null && t.estimatedBpm > 0);
     const total = withBpm.length || 1;
 
     return BPM_ZONES.map((zone) => {
       const zoneTracks = withBpm.filter(
-        (t) => t.estimatedBpm >= zone.min && t.estimatedBpm < zone.max
+        (t) => t.estimatedBpm! >= zone.min && t.estimatedBpm! < zone.max
       );
       return {
         zone: `${zone.min}–${zone.max === 300 ? "+" : zone.max} BPM`,
@@ -357,9 +357,9 @@ export default function TempoLabPage() {
           </p>
           <div className="relative h-8">
             {(analysis.trackAnalyses || [])
-              .filter((t) => t.estimatedBpm > 0)
+              .filter((t) => t.estimatedBpm != null && t.estimatedBpm > 0)
               .map((track, i) => {
-                const bpm = Math.min(Math.max(track.estimatedBpm, 40), 200);
+                const bpm = Math.min(Math.max(track.estimatedBpm!, 40), 200);
                 const pct = ((bpm - 40) / (200 - 40)) * 100;
                 const zone = getZoneForBpm(bpm);
                 return (

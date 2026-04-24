@@ -5,10 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
+import { client, HAIKU_MODEL, parseJson } from "@/lib/anthropic";
 import { SCENE_ENTRIES } from "@/lib/genre-map-data";
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,22 +33,13 @@ Identify 4-5 adjacent micro-genres they likely haven't discovered yet, prioritiz
 Return only JSON: { "suggestions": [{ "name": "exact scene name from list", "region": "exact region from list", "lat": number, "lng": number, "reason": "one sentence explaining sonic/geographic proximity" }] }`;
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1024,
+      model: HAIKU_MODEL,
+      max_tokens: 600,
       messages: [{ role: "user", content: prompt }],
     });
 
-    const text =
-      response.content[0].type === "text" ? response.content[0].text : "";
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return NextResponse.json(
-        { error: "Failed to parse radar suggestions" },
-        { status: 500 }
-      );
-    }
-
-    const parsed = JSON.parse(jsonMatch[0]);
+    const text = response.content[0].type === "text" ? response.content[0].text : "";
+    const parsed = parseJson(text);
     return NextResponse.json(parsed);
   } catch (err) {
     console.error("Radar error:", err);

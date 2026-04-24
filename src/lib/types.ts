@@ -20,6 +20,7 @@ export interface SpotifyTrack {
     images: { url: string; height: number; width: number }[];
   };
   popularity: number;
+  preview_url?: string | null;
 }
 
 export interface RecentTrackDetail {
@@ -28,9 +29,11 @@ export interface RecentTrackDetail {
   artists: string[];
   albumName: string;
   albumImage: string;
-  genres: string[];        // derived from artist genres
-  bpm: number | null;      // from audio features API, null if unavailable
-  estimatedBpm: number | null;  // Claude-estimated if API unavailable
+  genres: string[];
+  bpm: number | null;
+  estimatedBpm: number | null;
+  playedAt?: string;        // ISO timestamp from Spotify recently-played
+  previewUrl?: string | null;
 }
 
 export interface SpotifyData {
@@ -42,7 +45,6 @@ export interface SpotifyData {
   recentlyPlayed: SpotifyTrack[];
   recentTrackDetails: RecentTrackDetail[];
   allGenres: string[];
-  uniqueArtists: string[];
   tasteTimeline: TasteTimelineEntry[];
 }
 
@@ -64,6 +66,7 @@ export interface PlaylistTrackDetail {
   albumImage: string;
   genres: string[];
   bpm: number | null;
+  previewUrl?: string | null;
 }
 
 export interface PlaylistAnalysis {
@@ -81,8 +84,44 @@ export interface TrackAnalysis {
   trackName: string;
   artists: string[];
   genres: string[];
-  estimatedBpm: number;
+  estimatedBpm: number | null;
   mood: string;
+}
+
+export interface SoundLayer {
+  name: string;
+  type: "melodic" | "harmonic" | "spatial" | "dynamic";
+  shortDescription: string;
+  presencePercent: number;
+  explanation: string;
+  questionTags: [string, string];
+}
+
+export interface AnatomyResult {
+  layers: SoundLayer[];
+  grooveFeel: {
+    type: "straight" | "swung" | "syncopated" | "free";
+    explanation: string;
+    beatPattern: number[];
+  };
+  key: string;
+  keyFeel: string;
+  dynamicRange: "narrow" | "medium" | "wide";
+  dynamicExplanation: string;
+  texture: "sparse" | "layered" | "dense";
+  textureExplanation: string;
+  hasRealData: boolean;
+  confirmedBpm: number | null;
+  spotifyData?: {
+    tempo: number;
+    key: string;
+    energy: number;
+    acousticness: number;
+    danceability: number;
+    instrumentalness: number;
+    loudness: number;
+    valence: number;
+  };
 }
 
 export interface SearchTrackResult {
@@ -95,6 +134,7 @@ export interface SearchTrackResult {
   genres: string[];
   spotifyUrl: string | null;
   uri: string | null;
+  previewUrl?: string | null;
 }
 
 export interface AnalysisResult {

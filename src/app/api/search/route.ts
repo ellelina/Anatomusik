@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
         genres: [] as string[],
         spotifyUrl: externalUrls?.spotify || null,
         uri: (track.uri as string) || null,
+        previewUrl: (track.preview_url as string | null) ?? null,
       };
     });
 

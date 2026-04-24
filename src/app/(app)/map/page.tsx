@@ -32,6 +32,7 @@ import ZoomControls from "./ZoomControls";
 import OverlayPanel from "./OverlayPanel";
 import TooltipCard from "./TooltipCard";
 import BottomSheet from "./BottomSheet";
+import SceneDrillDown from "./SceneDrillDown";
 import SceneMapCanvas from "./SceneMapCanvas";
 import MigrationLegend from "./MigrationLegend";
 import EnergyLegend from "./EnergyLegend";
@@ -60,11 +61,12 @@ export default function MapPage() {
   const [radarSuggestions, setRadarSuggestions] = useState<RadarSuggestion[]>([]);
   const [radarLoading, setRadarLoading] = useState(false);
 
-  // Tooltip / bottom sheet
+  // Tooltip / bottom sheet / drill-down
   const [hoveredScene, setHoveredScene] = useState<SceneEntry | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [tooltipText, setTooltipText] = useState<string | null>(null);
   const [bottomSheetScene, setBottomSheetScene] = useState<SceneEntry | null>(null);
+  const [selectedScene, setSelectedScene] = useState<SceneEntry | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
   // Derived state
@@ -212,6 +214,8 @@ export default function MapPage() {
       setZoom(4);
       if (isMobile) {
         setBottomSheetScene(scene);
+      } else {
+        setSelectedScene(scene);
       }
     },
     [isMobile]
@@ -425,6 +429,14 @@ export default function MapPage() {
         <BottomSheet
           scene={bottomSheetScene}
           onClose={() => setBottomSheetScene(null)}
+        />
+      )}
+
+      {/* Desktop scene drill-down panel */}
+      {!isMobile && selectedScene && (
+        <SceneDrillDown
+          scene={selectedScene}
+          onClose={() => setSelectedScene(null)}
         />
       )}
     </div>

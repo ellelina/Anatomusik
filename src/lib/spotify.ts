@@ -7,6 +7,7 @@ import {
   SpotifyArtist, SpotifyTrack, SpotifyData, RecentTrackDetail,
   SpotifyPlaylist, PlaylistTrackDetail, TasteTimelineEntry,
 } from "./types";
+import { resolveGenresToScene } from "./map-utils";
 
 const SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize";
 const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
@@ -64,7 +65,7 @@ async function spotifyFetch<T>(endpoint: string, accessToken: string): Promise<T
   return res.json();
 }
 
-// Try to fetch audio features (BPM/tempo). Returns null if API is restricted.
+// Try to fetch audio features (BPM/tempo). Returns empty map if API is restricted.
 async function fetchAudioFeatures(
   trackIds: string[],
   accessToken: string
@@ -78,7 +79,7 @@ async function fetchAudioFeatures(
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
-    if (!res.ok) return bpmMap; // API restricted, return empty
+    if (!res.ok) return bpmMap;
 
     const data = await res.json();
     for (const feature of data.audio_features || []) {
@@ -93,8 +94,57 @@ async function fetchAudioFeatures(
   return bpmMap;
 }
 
+// Batch-fetch genres for a set of artist IDs (50 per request)
+async function fetchArtistGenres(
+  artistIds: string[],
+  accessToken: string
+): Promise<Map<string, string[]>> {
+  const genreMap = new Map<string, string[]>();
+  for (let i = 0; i < artistIds.length; i += 50) {
+    const batch = artistIds.slice(i, i + 50).join(",");
+    try {
+      const res = await spotifyFetch<{ artists: SpotifyArtist[] }>(
+        `/artists?ids=${batch}`,
+        accessToken
+      );
+      for (const artist of res.artists) {
+        if (artist?.id && Array.isArray(artist.genres)) {
+          genreMap.set(artist.id, artist.genres);
+        }
+      }
+    } catch {
+      // Non-critical, continue without this batch
+    }
+  }
+  return genreMap;
+}
+
+// Collect all genres for a track's artists from a pre-built genre map
+function trackGenres(
+  artists: { id: string }[],
+  genreMap: Map<string, string[]>
+): string[] {
+  const genres = new Set<string>();
+  for (const artist of artists) {
+    for (const g of genreMap.get(artist.id) || []) genres.add(g);
+  }
+  return Array.from(genres);
+}
+
+function extractTopGenres(artists: SpotifyArtist[]): string[] {
+  const genreCounts = new Map<string, number>();
+  for (const artist of artists) {
+    for (const genre of artist.genres || []) {
+      genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1);
+    }
+  }
+  return Array.from(genreCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([genre]) => genre);
+}
+
 export async function fetchUserData(accessToken: string): Promise<SpotifyData> {
-  // Fetch all data in parallel
   const [
     topArtistsShortRes,
     topArtistsMediumRes,
@@ -103,33 +153,16 @@ export async function fetchUserData(accessToken: string): Promise<SpotifyData> {
     topTracksMediumRes,
     recentlyPlayedRes,
   ] = await Promise.all([
-    spotifyFetch<{ items: SpotifyArtist[] }>(
-      "/me/top/artists?time_range=short_term&limit=50",
-      accessToken
-    ),
-    spotifyFetch<{ items: SpotifyArtist[] }>(
-      "/me/top/artists?time_range=medium_term&limit=50",
-      accessToken
-    ),
-    spotifyFetch<{ items: SpotifyArtist[] }>(
-      "/me/top/artists?time_range=long_term&limit=50",
-      accessToken
-    ),
-    spotifyFetch<{ items: SpotifyTrack[] }>(
-      "/me/top/tracks?time_range=short_term&limit=50",
-      accessToken
-    ),
-    spotifyFetch<{ items: SpotifyTrack[] }>(
-      "/me/top/tracks?time_range=medium_term&limit=50",
-      accessToken
-    ),
-    spotifyFetch<{ items: { track: SpotifyTrack }[] }>(
-      "/me/player/recently-played?limit=50",
-      accessToken
-    ),
+    spotifyFetch<{ items: SpotifyArtist[] }>("/me/top/artists?time_range=short_term&limit=50", accessToken),
+    spotifyFetch<{ items: SpotifyArtist[] }>("/me/top/artists?time_range=medium_term&limit=50", accessToken),
+    spotifyFetch<{ items: SpotifyArtist[] }>("/me/top/artists?time_range=long_term&limit=50", accessToken),
+    spotifyFetch<{ items: SpotifyTrack[] }>("/me/top/tracks?time_range=short_term&limit=50", accessToken),
+    spotifyFetch<{ items: SpotifyTrack[] }>("/me/top/tracks?time_range=medium_term&limit=50", accessToken),
+    spotifyFetch<{ items: { track: SpotifyTrack; played_at: string }[] }>("/me/player/recently-played?limit=50", accessToken),
   ]);
 
-  const recentTracks = recentlyPlayedRes.items.map((item) => item.track);
+  const recentItems = recentlyPlayedRes.items;
+  const recentTracks = recentItems.map((item) => item.track);
 
   // Build artist ID -> genres lookup from top artists (all three time ranges)
   const artistGenreMap = new Map<string, string[]>();
@@ -137,98 +170,70 @@ export async function fetchUserData(accessToken: string): Promise<SpotifyData> {
     artistGenreMap.set(artist.id, artist.genres);
   }
 
-  // Fetch genres for any recent track artists not already in our top artists
+  // Fetch genres for recent track artists not already in our top artists
   const missingArtistIds = new Set<string>();
   for (const track of recentTracks) {
     for (const artist of track.artists) {
-      if (!artistGenreMap.has(artist.id)) {
-        missingArtistIds.add(artist.id);
-      }
+      if (!artistGenreMap.has(artist.id)) missingArtistIds.add(artist.id);
     }
   }
 
-  // Batch fetch missing artists (up to 50 per request)
   if (missingArtistIds.size > 0) {
-    const ids = Array.from(missingArtistIds).slice(0, 50).join(",");
-    try {
-      const artistsRes = await spotifyFetch<{ artists: SpotifyArtist[] }>(
-        `/artists?ids=${ids}`,
-        accessToken
-      );
-      for (const artist of artistsRes.artists) {
-        if (artist?.id && Array.isArray(artist.genres)) {
-          artistGenreMap.set(artist.id, artist.genres);
-        }
-      }
-    } catch {
-      // Non-critical, continue without extra genre data
-    }
+    const extra = await fetchArtistGenres(Array.from(missingArtistIds), accessToken);
+    extra.forEach((genres, id) => artistGenreMap.set(id, genres));
   }
 
-  // Try to get BPM data from audio features
-  const recentTrackIds = recentTracks.map((t) => t.id);
-  const bpmMap = await fetchAudioFeatures(recentTrackIds, accessToken);
+  const bpmMap = await fetchAudioFeatures(recentTracks.map((t) => t.id), accessToken);
 
-  // Build detailed per-track info for recently played
-  const recentTrackDetails: RecentTrackDetail[] = recentTracks.map((track) => {
-    const trackGenres = new Set<string>();
-    for (const artist of track.artists) {
-      const genres = artistGenreMap.get(artist.id) || [];
-      for (const g of genres) trackGenres.add(g);
-    }
+  const recentTrackDetails: RecentTrackDetail[] = recentTracks.map((track, i) => ({
+    id: track.id,
+    name: track.name,
+    artists: track.artists.map((a) => a.name),
+    albumName: track.album.name,
+    albumImage: track.album.images?.[0]?.url || "",
+    genres: trackGenres(track.artists, artistGenreMap),
+    bpm: bpmMap.get(track.id) || null,
+    estimatedBpm: null,
+    playedAt: recentItems[i]?.played_at,
+    previewUrl: track.preview_url ?? null,
+  }));
 
-    return {
-      id: track.id,
-      name: track.name,
-      artists: track.artists.map((a) => a.name),
-      albumName: track.album.name,
-      albumImage: track.album.images?.[0]?.url || "",
-      genres: Array.from(trackGenres),
-      bpm: bpmMap.get(track.id) || null,
-      estimatedBpm: null, // filled in by Claude if API BPM unavailable
-    };
-  });
-
-  // Deduplicate genres and artists
   const allGenresSet = new Set<string>();
-  const allArtistsSet = new Set<string>();
-
   artistGenreMap.forEach((genres) => {
-    if (Array.isArray(genres)) {
-      for (const genre of genres) allGenresSet.add(genre);
-    }
+    if (Array.isArray(genres)) genres.forEach((g) => allGenresSet.add(g));
   });
 
-  const allTracks = [
-    ...topTracksShortRes.items,
-    ...topTracksMediumRes.items,
-    ...recentTracks,
-  ];
+  // Resolve taste timeline scenes at fetch time so map page doesn't re-process
+  const longTopGenres = extractTopGenres(topArtistsLongRes.items);
+  const mediumTopGenres = extractTopGenres(topArtistsMediumRes.items);
+  const shortTopGenres = extractTopGenres(topArtistsShortRes.items);
 
-  for (const track of allTracks) {
-    for (const artist of track.artists) {
-      allArtistsSet.add(artist.name);
-    }
-  }
-
-  // Build taste timeline from genre frequencies per time period
-  function extractTopGenres(artists: SpotifyArtist[]): string[] {
-    const genreCounts = new Map<string, number>();
-    for (const artist of artists) {
-      for (const genre of artist.genres || []) {
-        genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1);
-      }
-    }
-    return Array.from(genreCounts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([genre]) => genre);
-  }
+  const longScene = resolveGenresToScene(longTopGenres);
+  const mediumScene = resolveGenresToScene(mediumTopGenres);
+  const shortScene = resolveGenresToScene(shortTopGenres);
 
   const tasteTimeline: TasteTimelineEntry[] = [
-    { period: "long_term", label: "All time", topGenres: extractTopGenres(topArtistsLongRes.items), resolvedScene: null, coordinates: null },
-    { period: "medium_term", label: "Last 6 months", topGenres: extractTopGenres(topArtistsMediumRes.items), resolvedScene: null, coordinates: null },
-    { period: "short_term", label: "Last 4 weeks", topGenres: extractTopGenres(topArtistsShortRes.items), resolvedScene: null, coordinates: null },
+    {
+      period: "long_term",
+      label: "All time",
+      topGenres: longTopGenres,
+      resolvedScene: longScene?.sceneName ?? null,
+      coordinates: longScene?.coordinates ?? null,
+    },
+    {
+      period: "medium_term",
+      label: "Last 6 months",
+      topGenres: mediumTopGenres,
+      resolvedScene: mediumScene?.sceneName ?? null,
+      coordinates: mediumScene?.coordinates ?? null,
+    },
+    {
+      period: "short_term",
+      label: "Last 4 weeks",
+      topGenres: shortTopGenres,
+      resolvedScene: shortScene?.sceneName ?? null,
+      coordinates: shortScene?.coordinates ?? null,
+    },
   ];
 
   return {
@@ -240,46 +245,30 @@ export async function fetchUserData(accessToken: string): Promise<SpotifyData> {
     recentlyPlayed: recentTracks,
     recentTrackDetails,
     allGenres: Array.from(allGenresSet),
-    uniqueArtists: Array.from(allArtistsSet),
     tasteTimeline,
   };
 }
 
-// Fetch all user playlists
 export async function fetchPlaylists(accessToken: string): Promise<SpotifyPlaylist[]> {
   const playlists: SpotifyPlaylist[] = [];
   let url = "/me/playlists?limit=50";
 
   while (url) {
-    const res = await spotifyFetch<{
-      items: SpotifyPlaylist[];
-      next: string | null;
-    }>(url, accessToken);
-
+    const res = await spotifyFetch<{ items: SpotifyPlaylist[]; next: string | null }>(url, accessToken);
     for (const pl of res.items) {
       if (pl && pl.id) playlists.push(pl);
     }
-
-    // Handle pagination — next is a full URL, extract the path
-    if (res.next) {
-      url = res.next.replace(SPOTIFY_API_BASE, "");
-    } else {
-      url = "";
-    }
+    url = res.next ? res.next.replace(SPOTIFY_API_BASE, "") : "";
   }
 
   return playlists;
 }
 
-// Fetch tracks for a specific playlist with genre data
 export async function fetchPlaylistTracks(
   playlistId: string,
   accessToken: string
 ): Promise<PlaylistTrackDetail[]> {
-  // Fetch playlist with tracks via the main playlist endpoint
   const allTracks: SpotifyTrack[] = [];
-
-  // Try the full playlist endpoint first, fall back to tracks endpoint
   let nextUrl: string | null = null;
 
   try {
@@ -288,16 +277,6 @@ export async function fetchPlaylistTracks(
       accessToken
     );
 
-    // Log full structure to understand what Spotify returns
-    console.log("playlist.tracks type:", typeof playlist.tracks);
-    console.log("playlist.items type:", typeof playlist.items);
-    if (Array.isArray(playlist.items)) {
-      console.log("playlist.items length:", (playlist.items as unknown[]).length);
-      console.log("playlist.items[0] keys:", playlist.items[0] ? Object.keys(playlist.items[0] as object) : "empty");
-      console.log("playlist.items[0]:", JSON.stringify(playlist.items[0]).slice(0, 500));
-    }
-
-    // Try playlist.tracks.items, playlist.items, or playlist.items[].track
     const tracksContainer = playlist.tracks as { items: unknown[]; next: string | null } | undefined;
     const itemsArray = (tracksContainer?.items || playlist.items) as unknown[];
 
@@ -309,20 +288,16 @@ export async function fetchPlaylistTracks(
       }
       nextUrl = tracksContainer?.next || null;
     }
-  } catch (err) {
-    console.log("Full playlist endpoint failed, trying tracks endpoint:", err);
+  } catch {
+    // Fall through to direct tracks endpoint
   }
 
-  // If we got no tracks from the playlist object, try the direct tracks endpoint
   if (allTracks.length === 0 && !nextUrl) {
     try {
-      // Use raw fetch to avoid the spotifyFetch error throwing
       const res = await fetch(
         `${SPOTIFY_API_BASE}/playlists/${playlistId}/tracks?limit=100`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
-      console.log("Tracks endpoint status:", res.status);
-
       if (res.ok) {
         const data = await res.json();
         for (const item of data.items || []) {
@@ -330,18 +305,14 @@ export async function fetchPlaylistTracks(
         }
         nextUrl = data.next;
       }
-    } catch (err) {
-      console.log("Tracks endpoint also failed:", err);
+    } catch {
+      // Non-critical
     }
   }
 
-  // Paginate remaining tracks
   while (nextUrl) {
-    const res = await fetch(nextUrl, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    const res = await fetch(nextUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (!res.ok) break;
-
     const data = await res.json();
     for (const item of data.items || []) {
       if (item.track && item.track.id) allTracks.push(item.track);
@@ -353,72 +324,29 @@ export async function fetchPlaylistTracks(
     throw new Error("Could not fetch playlist tracks. Your Spotify app may need Extended Quota Mode for playlist access.");
   }
 
-  // Collect all unique artist IDs and batch-fetch their genres
-  const artistIds = new Set<string>();
-  for (const track of allTracks) {
-    for (const artist of track.artists) {
-      artistIds.add(artist.id);
-    }
-  }
+  const artistIds = Array.from(new Set(allTracks.flatMap((t) => t.artists.map((a) => a.id))));
+  const artistGenreMap = await fetchArtistGenres(artistIds, accessToken);
 
-  const artistGenreMap = new Map<string, string[]>();
-  const idArray = Array.from(artistIds);
-
-  // Fetch artists in batches of 50
-  for (let i = 0; i < idArray.length; i += 50) {
-    const batch = idArray.slice(i, i + 50).join(",");
-    try {
-      const res = await spotifyFetch<{ artists: SpotifyArtist[] }>(
-        `/artists?ids=${batch}`,
-        accessToken
-      );
-      for (const artist of res.artists) {
-        if (artist?.id && Array.isArray(artist.genres)) {
-          artistGenreMap.set(artist.id, artist.genres);
-        }
-      }
-    } catch {
-      // Continue without genre data for this batch
-    }
-  }
-
-  // Try to get BPM data
-  const trackIds = allTracks.map((t) => t.id);
   const bpmMap = new Map<string, number>();
-
-  // Audio features in batches of 100
-  for (let i = 0; i < trackIds.length; i += 100) {
-    const batch = trackIds.slice(i, i + 100);
+  for (let i = 0; i < allTracks.length; i += 100) {
+    const batch = allTracks.slice(i, i + 100).map((t) => t.id);
     const batchResult = await fetchAudioFeatures(batch, accessToken);
-    batchResult.forEach((bpm, id) => {
-      bpmMap.set(id, bpm);
-    });
+    batchResult.forEach((bpm, id) => bpmMap.set(id, bpm));
   }
 
-  // Build detailed track list
-  return allTracks.map((track) => {
-    const trackGenres = new Set<string>();
-    for (const artist of track.artists) {
-      const genres = artistGenreMap.get(artist.id);
-      if (Array.isArray(genres)) {
-        for (const g of genres) trackGenres.add(g);
-      }
-    }
-
-    return {
-      id: track.id,
-      name: track.name,
-      artists: track.artists.map((a) => a.name),
-      artistIds: track.artists.map((a) => a.id),
-      albumName: track.album?.name || "",
-      albumImage: track.album?.images?.[0]?.url || "",
-      genres: Array.from(trackGenres),
-      bpm: bpmMap.get(track.id) || null,
-    };
-  });
+  return allTracks.map((track) => ({
+    id: track.id,
+    name: track.name,
+    artists: track.artists.map((a) => a.name),
+    artistIds: track.artists.map((a) => a.id),
+    albumName: track.album?.name || "",
+    albumImage: track.album?.images?.[0]?.url || "",
+    genres: trackGenres(track.artists, artistGenreMap),
+    bpm: bpmMap.get(track.id) || null,
+    previewUrl: track.preview_url ?? null,
+  }));
 }
 
-// Fetch user's saved/liked tracks with genre data (paginated)
 export async function fetchSavedTracks(
   accessToken: string,
   offset: number = 0,
@@ -434,60 +362,21 @@ export async function fetchSavedTracks(
     .filter((item) => item.track && item.track.id)
     .map((item) => item.track);
 
-  // Batch-fetch artist genres
-  const artistIds = new Set<string>();
-  for (const track of rawTracks) {
-    for (const artist of track.artists) {
-      artistIds.add(artist.id);
-    }
-  }
+  const artistIds = Array.from(new Set(rawTracks.flatMap((t) => t.artists.map((a) => a.id))));
+  const artistGenreMap = await fetchArtistGenres(artistIds, accessToken);
+  const bpmMap = await fetchAudioFeatures(rawTracks.map((t) => t.id), accessToken);
 
-  const artistGenreMap = new Map<string, string[]>();
-  const idArray = Array.from(artistIds);
-
-  for (let i = 0; i < idArray.length; i += 50) {
-    const batch = idArray.slice(i, i + 50).join(",");
-    try {
-      const artistsRes = await spotifyFetch<{ artists: SpotifyArtist[] }>(
-        `/artists?ids=${batch}`,
-        accessToken
-      );
-      for (const artist of artistsRes.artists) {
-        if (artist?.id && Array.isArray(artist.genres)) {
-          artistGenreMap.set(artist.id, artist.genres);
-        }
-      }
-    } catch {
-      // Continue
-    }
-  }
-
-  // Try BPM data
-  const bpmMap = await fetchAudioFeatures(
-    rawTracks.map((t) => t.id),
-    accessToken
-  );
-
-  const tracks: PlaylistTrackDetail[] = rawTracks.map((track) => {
-    const trackGenres = new Set<string>();
-    for (const artist of track.artists) {
-      const genres = artistGenreMap.get(artist.id);
-      if (Array.isArray(genres)) {
-        for (const g of genres) trackGenres.add(g);
-      }
-    }
-
-    return {
-      id: track.id,
-      name: track.name,
-      artists: track.artists.map((a) => a.name),
-      artistIds: track.artists.map((a) => a.id),
-      albumName: track.album?.name || "",
-      albumImage: track.album?.images?.[0]?.url || "",
-      genres: Array.from(trackGenres),
-      bpm: bpmMap.get(track.id) || null,
-    };
-  });
+  const tracks: PlaylistTrackDetail[] = rawTracks.map((track) => ({
+    id: track.id,
+    name: track.name,
+    artists: track.artists.map((a) => a.name),
+    artistIds: track.artists.map((a) => a.id),
+    albumName: track.album?.name || "",
+    albumImage: track.album?.images?.[0]?.url || "",
+    genres: trackGenres(track.artists, artistGenreMap),
+    bpm: bpmMap.get(track.id) || null,
+    previewUrl: track.preview_url ?? null,
+  }));
 
   return { tracks, total: res.total };
 }

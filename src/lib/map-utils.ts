@@ -204,7 +204,7 @@ export function buildEnergyMap(
 
     trackRegions.forEach((region) => {
       const data = regionData.get(region) || { bpms: [], moods: [] };
-      if (track.estimatedBpm > 0) data.bpms.push(track.estimatedBpm);
+      if (track.estimatedBpm != null && track.estimatedBpm > 0) data.bpms.push(track.estimatedBpm);
       if (track.mood) data.moods.push(track.mood);
       regionData.set(region, data);
     });

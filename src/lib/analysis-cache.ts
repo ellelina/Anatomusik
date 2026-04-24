@@ -1,6 +1,6 @@
 /*
  * sessionStorage cache for analysis results, timeline, and radar data.
- * Allows the map page to read cached results without re-running Claude.
+ * Results expire after 2 hours so stale data from a previous session isn't served.
  */
 
 import { AnalysisResult, TasteTimelineEntry, RadarSuggestion } from "./types";
@@ -8,48 +8,40 @@ import { AnalysisResult, TasteTimelineEntry, RadarSuggestion } from "./types";
 const KEY = "anatomusik_analysis";
 const TIMELINE_KEY = "anatomusik_timeline";
 const RADAR_KEY = "anatomusik_radar";
+const TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 
-export function saveAnalysis(result: AnalysisResult): void {
+interface CacheEntry<T> {
+  data: T;
+  ts: number;
+}
+
+function save<T>(key: string, data: T): void {
   try {
-    sessionStorage.setItem(KEY, JSON.stringify(result));
+    const entry: CacheEntry<T> = { data, ts: Date.now() };
+    sessionStorage.setItem(key, JSON.stringify(entry));
   } catch { /* quota exceeded or SSR */ }
 }
 
-export function loadAnalysis(): AnalysisResult | null {
+function load<T>(key: string): T | null {
   try {
-    const raw = sessionStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as AnalysisResult) : null;
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const entry: CacheEntry<T> = JSON.parse(raw);
+    if (Date.now() - entry.ts > TTL_MS) {
+      sessionStorage.removeItem(key);
+      return null;
+    }
+    return entry.data;
   } catch {
     return null;
   }
 }
 
-export function saveTimeline(timeline: TasteTimelineEntry[]): void {
-  try {
-    sessionStorage.setItem(TIMELINE_KEY, JSON.stringify(timeline));
-  } catch { /* quota exceeded or SSR */ }
-}
+export const saveAnalysis = (r: AnalysisResult) => save(KEY, r);
+export const loadAnalysis = () => load<AnalysisResult>(KEY);
 
-export function loadTimeline(): TasteTimelineEntry[] | null {
-  try {
-    const raw = sessionStorage.getItem(TIMELINE_KEY);
-    return raw ? (JSON.parse(raw) as TasteTimelineEntry[]) : null;
-  } catch {
-    return null;
-  }
-}
+export const saveTimeline = (t: TasteTimelineEntry[]) => save(TIMELINE_KEY, t);
+export const loadTimeline = () => load<TasteTimelineEntry[]>(TIMELINE_KEY);
 
-export function saveRadarResults(results: RadarSuggestion[]): void {
-  try {
-    sessionStorage.setItem(RADAR_KEY, JSON.stringify(results));
-  } catch { /* quota exceeded or SSR */ }
-}
-
-export function loadRadarResults(): RadarSuggestion[] | null {
-  try {
-    const raw = sessionStorage.getItem(RADAR_KEY);
-    return raw ? (JSON.parse(raw) as RadarSuggestion[]) : null;
-  } catch {
-    return null;
-  }
-}
+export const saveRadarResults = (r: RadarSuggestion[]) => save(RADAR_KEY, r);
+export const loadRadarResults = () => load<RadarSuggestion[]>(RADAR_KEY);
