@@ -17,11 +17,13 @@ interface BreakdownRequest {
   userDominantPercentage: number;
 }
 
+const SYSTEM = `You are a music insider talking to a curious listener. Be direct, specific, and conversational. No hyphens used as dashes. No parenthetical explanations. No phrases like "think of it like" or "in other words" or "essentially". Never explain what BPM means. Never define music terms — just use them naturally. Each insight should be 2-3 sentences maximum. Lead with the most interesting observation, not the technical fact. Write like a knowledgeable friend texting you about a song, not a music teacher grading an essay.`;
+
 export async function POST(request: NextRequest) {
   try {
     const body: BreakdownRequest = await request.json();
 
-    const prompt = `You are explaining to a complete music beginner why a specific song feels the way it does. No jargon. No assumed knowledge. Write like a warm, knowledgeable friend.
+    const prompt = `${SYSTEM}
 
 Song: "${body.trackName}" by ${body.artists.join(", ")}
 Micro-genres: ${body.genres.join(", ")}
@@ -29,24 +31,20 @@ BPM: ${body.bpm}
 Mood: ${body.mood}
 User's dominant tempo zone: ${body.userDominantZone} (${body.userDominantPercentage}% of their library)
 
-Write exactly 4 sections as a JSON object. Each section should be 2-3 sentences max.
+Write 4 short sections about this specific track. Each section is 2-3 sentences max. Be specific to THIS song.
 
 {
-  "tempoExplained": "Explain the BPM in human terms — not just the number but what pace it corresponds to (walking, jogging, heartbeat, dancing). What does the brain and body recognize this speed as?",
-  "grooveFeel": "Identify whether the track feels straight (even, mechanical, metronomic) or swung (loose, bouncy, slightly behind-the-beat). Explain what that does emotionally in plain English. Why does swing feel relaxed? Why does straight feel driving?",
-  "anchorInstrument": "Identify the instrument or production element carrying the rhythmic weight. Explain what it's doing and why it matters — what pattern it creates and why the listener's body responds to it. Use sensory language.",
-  "whyYouLikeIt": "One sentence connecting this track's tempo and feel to the user's broader listening habits. Reference their dominant zone percentage. Be specific."
+  "tempoExplained": "What the speed of this track actually feels like and why it works for this song.",
+  "grooveFeel": "Whether it feels tight and mechanical or loose and swung, and what that does to the listener.",
+  "anchorInstrument": "The instrument or production element carrying the rhythmic weight, and why the body responds to it.",
+  "whyYouLikeIt": "One sentence connecting this track to the user's dominant tempo zone (${body.userDominantPercentage}% of their library)."
 }
 
-Rules:
-- Every BPM number must be immediately followed by a human comparison
-- Every music term must have a plain-English definition in the same sentence
-- Be specific to THIS song, not generic
-- "Swung" means beats landing slightly late on purpose; "straight" means perfectly even timing`;
+Respond with ONLY that JSON object.`;
 
     const response = await client.messages.create({
       model: HAIKU_MODEL,
-      max_tokens: 700,
+      max_tokens: 600,
       messages: [{ role: "user", content: prompt }],
     });
 

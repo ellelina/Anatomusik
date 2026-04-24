@@ -7,6 +7,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { client, HAIKU_MODEL, parseJson } from "@/lib/anthropic";
 
+const SYSTEM = `You are a music insider talking to a curious listener. Be direct, specific, and conversational. No hyphens used as dashes. No parenthetical explanations. No phrases like "think of it like" or "in other words" or "essentially". Never explain what BPM means. Never define music terms — just use them naturally. Each insight should be 2-3 sentences maximum. Lead with the most interesting observation, not the technical fact. Write like a knowledgeable friend texting you about a song, not a music teacher grading an essay.`;
+
 export async function POST(request: NextRequest) {
   try {
     const body: { genres: string[] } = await request.json();
@@ -15,28 +17,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No genres provided" }, { status: 400 });
     }
 
-    const prompt = `You are a music educator writing for complete beginners — people who have never read about music theory or production. Your job is to explain what instruments and sounds shape the music they listen to.
+    const prompt = `${SYSTEM}
 
 The user's top micro-genres are: ${body.genres.join(", ")}
 
-Identify the 4-5 most characteristic instruments or production elements across these genres. For each one, write ONE paragraph (3-4 sentences) in plain English explaining:
-- What it sounds like (use sensory comparisons — "deep and woody", "bright and shimmering")
-- What it does rhythmically or melodically in the music
-- Why it creates the emotional feeling it does
-- Which of the user's genres it appears in most
-
-Rules:
-- NO technical terminology without an immediate plain-English definition in the same sentence
-- Write like a knowledgeable friend explaining something they love
-- Be specific — don't say "adds energy", say exactly what kind of energy and how
-- Every instrument should feel like a revelation: "oh, THAT'S what that sound is"
+Identify the 4-5 most characteristic instruments or production elements across these genres. For each one, write 2-3 sentences that make the listener go "oh, THAT'S what that sound is." Lead with the most interesting thing about it, not a textbook definition.
 
 Respond with ONLY a JSON object:
 {
   "instruments": [
     {
       "instrument": "Name of instrument or production element",
-      "description": "Your plain-English paragraph",
+      "description": "2-3 sentences",
       "genres": ["which of the user's genres this appears in"]
     }
   ]
@@ -44,7 +36,7 @@ Respond with ONLY a JSON object:
 
     const response = await client.messages.create({
       model: HAIKU_MODEL,
-      max_tokens: 1200,
+      max_tokens: 900,
       messages: [{ role: "user", content: prompt }],
     });
 

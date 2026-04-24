@@ -202,7 +202,9 @@ export default function TrackList({ tracks, trackDetails, title }: TrackListProp
               </button>
 
               {/* Recommendation panel slides in below selected track */}
-              {isSelected && <RecommendPanel track={track} />}
+              {isSelected && (
+                <RecommendPanel track={track} spotifyGenres={detail?.genres ?? []} />
+              )}
             </div>
           );
         })}

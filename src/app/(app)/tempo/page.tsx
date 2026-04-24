@@ -255,7 +255,7 @@ export default function TempoLabPage() {
         <div className="text-center py-20">
           <div className="inline-block w-10 h-10 border-2 border-white/20 border-t-purple-400 rounded-full animate-spin mb-6" />
           <p className="text-lg font-medium text-white mb-1">Loading your music data...</p>
-          <p className="text-sm text-neutral-500">This may take a moment if it&apos;s your first visit</p>
+          <p className="text-sm text-neutral-500">May take a moment on first visit</p>
         </div>
       </main>
     );
@@ -287,8 +287,7 @@ export default function TempoLabPage() {
       <div className="mb-16">
         <h1 className="text-3xl font-bold text-white mb-3">Tempo Lab</h1>
         <p className="text-neutral-400 text-lg leading-relaxed max-w-2xl">
-          Why does your favorite song feel the way it does? Let&apos;s find out —
-          using your own music as the textbook.
+          Why does a song feel the way it does? Your own music holds the answer.
         </p>
       </div>
 
@@ -299,8 +298,7 @@ export default function TempoLabPage() {
         </h2>
         <h3 className="text-2xl font-bold text-white mb-2">Your Tempo Identity</h3>
         <p className="text-neutral-400 text-sm mb-8 max-w-xl">
-          Every song has a speed — measured in BPM (beats per minute). Here&apos;s
-          how your music spreads across the tempo spectrum.
+          How your music spreads across the tempo spectrum.
         </p>
 
         {/* BPM Spectrum bar */}
@@ -391,8 +389,16 @@ export default function TempoLabPage() {
           </div>
         )}
         {personality && (
-          <div className="rounded-xl bg-white/[0.03] border border-white/10 p-6">
-            <p className="text-neutral-200 text-sm leading-relaxed">{personality}</p>
+          <div
+            className="rounded-xl bg-white/[0.03] border-t border-r border-b border-l-4 p-6"
+            style={{
+              borderTopColor: "rgba(255,255,255,0.08)",
+              borderRightColor: "rgba(255,255,255,0.08)",
+              borderBottomColor: "rgba(255,255,255,0.08)",
+              borderLeftColor: "rgba(168,85,247,0.5)",
+            }}
+          >
+            <p className="text-neutral-200 text-[15px] leading-7">{truncateSentences(personality)}</p>
           </div>
         )}
       </section>
@@ -404,8 +410,7 @@ export default function TempoLabPage() {
         </h2>
         <h3 className="text-2xl font-bold text-white mb-2">Pick a Song — Understand Why It Hits</h3>
         <p className="text-neutral-400 text-sm mb-8 max-w-xl">
-          Search for any song and we&apos;ll break down exactly why it feels the way
-          it does — in plain English, no music degree required.
+          Search any song for a breakdown of why it hits the way it does.
         </p>
 
         <form onSubmit={handleSearch} className="flex gap-3 mb-6">
@@ -461,7 +466,7 @@ export default function TempoLabPage() {
             <p className="text-white text-sm font-medium">
               Breaking down &ldquo;{selectedTrack.name}&rdquo;...
             </p>
-            <p className="text-neutral-500 text-xs mt-1">Understanding tempo, groove, and instrumentation</p>
+            <p className="text-neutral-500 text-xs mt-1">Analyzing tempo, groove, and instrumentation</p>
           </div>
         )}
 
@@ -537,8 +542,7 @@ export default function TempoLabPage() {
         </h2>
         <h3 className="text-2xl font-bold text-white mb-2">Tempo Zones — Explore by Feel</h3>
         <p className="text-neutral-400 text-sm mb-8 max-w-xl">
-          Your library, reorganized by energy instead of artist or genre.
-          A completely new way to experience music you already own.
+          Your library reorganized by energy. Browse by feel, not by artist.
         </p>
 
         <div className="space-y-3">
@@ -672,9 +676,7 @@ export default function TempoLabPage() {
         </h2>
         <h3 className="text-2xl font-bold text-white mb-2">The Instrument Explainer</h3>
         <p className="text-neutral-400 text-sm mb-8 max-w-xl">
-          The sounds and instruments that define your music — explained like
-          you&apos;ve never read a music textbook (because you probably haven&apos;t, and
-          that&apos;s fine).
+          The instruments and production elements that define your sound.
         </p>
 
         {instrumentsLoading && (
@@ -689,10 +691,16 @@ export default function TempoLabPage() {
             {instruments.map((inst, i) => (
               <div
                 key={i}
-                className="rounded-xl bg-white/[0.03] border border-white/10 p-6"
+                className="rounded-xl bg-white/[0.03] border-t border-r border-b border-l-4 p-6"
+                style={{
+                  borderTopColor: "rgba(255,255,255,0.08)",
+                  borderRightColor: "rgba(255,255,255,0.08)",
+                  borderBottomColor: "rgba(255,255,255,0.08)",
+                  borderLeftColor: "rgba(168,85,247,0.5)",
+                }}
               >
                 <div className="flex items-start justify-between gap-4 mb-3">
-                  <h4 className="text-white font-semibold text-lg">{inst.instrument}</h4>
+                  <h4 className="text-white font-bold text-lg">{inst.instrument}</h4>
                   <div className="flex gap-1 flex-shrink-0">
                     {(inst.genres || []).slice(0, 2).map((g) => (
                       <span
@@ -704,8 +712,8 @@ export default function TempoLabPage() {
                     ))}
                   </div>
                 </div>
-                <p className="text-neutral-300 text-sm leading-relaxed">
-                  {inst.description}
+                <p className="text-neutral-300 text-[15px] leading-7">
+                  {truncateSentences(inst.description)}
                 </p>
               </div>
             ))}
@@ -728,6 +736,12 @@ function Nav() {
   return <AppNav />;
 }
 
+function truncateSentences(text: string, max = 3): string {
+  const sentences = text.match(/[^.!?]+[.!?]+\s*/g);
+  if (!sentences || sentences.length <= max) return text;
+  return sentences.slice(0, max).join("").trimEnd() + "…";
+}
+
 function BreakdownCard({
   title,
   text,
@@ -740,14 +754,17 @@ function BreakdownCard({
 }) {
   return (
     <div
-      className="rounded-xl p-5 border"
+      className="rounded-xl p-5 border-t border-r border-b border-l-4"
       style={{
         backgroundColor: `${color}08`,
-        borderColor: `${color}25`,
+        borderTopColor: `${color}20`,
+        borderRightColor: `${color}20`,
+        borderBottomColor: `${color}20`,
+        borderLeftColor: "rgba(168,85,247,0.5)",
       }}
     >
-      <h4 className="text-white text-sm font-semibold mb-2">{title}</h4>
-      <p className="text-neutral-300 text-sm leading-relaxed">{text}</p>
+      <h4 className="text-white text-base font-bold mb-2">{title}</h4>
+      <p className="text-neutral-300 text-[15px] leading-7">{truncateSentences(text)}</p>
     </div>
   );
 }

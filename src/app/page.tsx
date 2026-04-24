@@ -202,7 +202,7 @@ export default function LandingPage() {
               color: "rgba(180,200,255,0.18)",
             }}
           >
-            read-only · we never modify your library
+            read-only. we never touch your library
           </p>
         </div>
       </div>

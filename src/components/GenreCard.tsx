@@ -1,6 +1,12 @@
 import { MicroGenre } from "@/lib/types";
 import ArtistChip from "./ArtistChip";
 
+function truncateSentences(text: string, max = 3): string {
+  const sentences = text.match(/[^.!?]+[.!?]+\s*/g);
+  if (!sentences || sentences.length <= max) return text;
+  return sentences.slice(0, max).join("").trimEnd() + "…";
+}
+
 const confidenceColors = {
   high: "border-emerald-500/50 bg-emerald-500/5",
   medium: "border-amber-500/50 bg-amber-500/5",
@@ -44,14 +50,15 @@ function ConfidenceDots({ level }: { level: "high" | "medium" | "low" }) {
 export default function GenreCard({ genre }: { genre: MicroGenre }) {
   return (
     <div
-      className={`rounded-2xl border p-5 transition-all hover:scale-[1.02] ${confidenceColors[genre.confidence]}`}
+      className={`rounded-2xl border-t border-r border-b border-l-4 p-5 transition-all hover:scale-[1.02] ${confidenceColors[genre.confidence]}`}
+      style={{ borderLeftColor: "rgba(168,85,247,0.5)" }}
     >
       <div className="flex items-start justify-between gap-2 mb-3">
-        <h3 className="text-lg font-bold text-white">{genre.name}</h3>
+        <h3 className="text-xl font-bold text-white">{genre.name}</h3>
         <ConfidenceDots level={genre.confidence} />
       </div>
-      <p className="text-sm text-neutral-400 mb-4 leading-relaxed">
-        {genre.description}
+      <p className="text-[15px] text-neutral-400 mb-4 leading-7">
+        {truncateSentences(genre.description)}
       </p>
       <div className="flex flex-wrap gap-2">
         {genre.representativeArtists.map((artist) => (

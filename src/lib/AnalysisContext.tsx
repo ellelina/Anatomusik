@@ -11,7 +11,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { AnalysisResult, RecentTrackDetail } from "./types";
-import { saveAnalysis, loadAnalysis } from "./analysis-cache";
+import { saveAnalysis, loadAnalysis, saveTrackDetails, loadTrackDetails } from "./analysis-cache";
 
 export type Stage = "idle" | "loading-spotify" | "analyzing" | "done" | "error";
 
@@ -45,6 +45,8 @@ export function AnalysisProvider({ children }: { children: ReactNode }) {
     const cached = loadAnalysis();
     if (cached) {
       setResult(cached);
+      const cachedDetails = loadTrackDetails();
+      if (cachedDetails) setTrackDetails(cachedDetails);
       setStage("done");
       return;
     }
@@ -83,8 +85,9 @@ export function AnalysisProvider({ children }: { children: ReactNode }) {
           const payload = JSON.parse(line.slice(6));
 
           if (payload.type === "spotify") {
-            // Spotify done — show track details immediately, keep loading genre analysis
-            setTrackDetails(payload.recentTrackDetails || []);
+            const details = payload.recentTrackDetails || [];
+            setTrackDetails(details);
+            saveTrackDetails(details);
             setStage("analyzing");
           } else if (payload.type === "analysis") {
             setResult(payload.analysis);

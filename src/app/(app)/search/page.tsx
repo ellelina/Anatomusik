@@ -43,7 +43,7 @@ function SearchPageInner() {
       setResults(data.tracks || []);
       setStage("results");
     } catch {
-      setError("Failed to search Spotify. Make sure you're logged in.");
+      setError("Search failed. Check your Spotify connection.");
       setStage("idle");
     }
   }, []);
@@ -93,7 +93,7 @@ function SearchPageInner() {
       <div className="mb-10">
         <h1 className="text-2xl font-bold text-white mb-2">Search a Song</h1>
         <p className="text-neutral-500 text-sm mb-6">
-          Look up any track to discover its micro-genres, BPM, and mood
+          Search any track for micro-genres, BPM, and mood
         </p>
         <form onSubmit={handleSearch} className="flex gap-3">
           <input
@@ -191,7 +191,7 @@ function SearchPageInner() {
           <p className="text-white font-medium text-sm">
             Analyzing &ldquo;{selected.name}&rdquo;...
           </p>
-          <p className="text-neutral-500 text-xs mt-1">Identifying micro-genres, BPM, and mood</p>
+          <p className="text-neutral-500 text-xs mt-1">Identifying micro-genres, BPM, mood</p>
         </div>
       )}
 

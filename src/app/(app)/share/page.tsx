@@ -56,7 +56,7 @@ export default function SharePage() {
         </div>
       ) : !result ? (
         <p className="text-sm" style={{ color: "rgba(180,200,255,0.4)" }}>
-          No analysis data found. Visit the dashboard to generate your profile.
+          No analysis data. Visit the dashboard first.
         </p>
       ) : (
         <>

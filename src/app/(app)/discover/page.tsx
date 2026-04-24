@@ -36,9 +36,9 @@ export default function DiscoverPage() {
     // Collect everything the user already knows so Claude can avoid it
     const knownArtists = Array.from(new Set([
       ...result.microGenres.flatMap((g) => g.representativeArtists),
-      ...result.trackAnalyses.flatMap((t) => t.artists),
+      ...(result.trackAnalyses ?? []).flatMap((t) => t.artists ?? []),
     ]));
-    const knownTracks = result.trackAnalyses.map((t) => t.trackName);
+    const knownTracks = (result.trackAnalyses ?? []).map((t) => t.trackName);
 
     try {
       const res = await fetch("/api/discover", {
@@ -56,7 +56,9 @@ export default function DiscoverPage() {
         throw new Error(errData.error || `Request failed (${res.status})`);
       }
       const data = await res.json();
-      setPlaylist(data.playlist || []);
+      const pl = data.playlist || [];
+      if (pl.length === 0) throw new Error("No artists found. Try again.");
+      setPlaylist(pl);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not generate playlist. Try again.");
     } finally {
@@ -81,7 +83,7 @@ export default function DiscoverPage() {
         Discovery Playlist
       </h1>
       <p className="text-sm mb-8" style={{ color: "rgba(180,200,255,0.5)" }}>
-        15 songs curated for your exact micro-genre taste
+        Artists curated to your micro-genre profile
       </p>
 
       {isAnalyzing ? (
@@ -93,11 +95,11 @@ export default function DiscoverPage() {
         </div>
       ) : !result ? (
         <p className="text-sm" style={{ color: "rgba(180,200,255,0.4)" }}>
-          No analysis data found. Visit the dashboard first.
+          No analysis data. Run your dashboard first.
         </p>
       ) : !result.microGenres?.length ? (
         <p className="text-sm" style={{ color: "rgba(180,200,255,0.4)" }}>
-          Micro-genre profile not found. Try refreshing your analysis on the dashboard.
+          Micro-genre profile missing. Refresh your dashboard analysis.
         </p>
       ) : (
         <>
@@ -119,7 +121,7 @@ export default function DiscoverPage() {
             <div className="flex flex-col items-center justify-center py-16 gap-4">
               <div className="w-8 h-8 border-2 border-white/20 border-t-[rgba(160,184,255,0.9)] rounded-full animate-spin" />
               <p className="text-sm" style={{ color: "rgba(180,200,255,0.6)" }}>
-                Claude is curating your playlist...
+                Curating your playlist...
               </p>
             </div>
           )}
@@ -162,11 +164,8 @@ export default function DiscoverPage() {
                         )}
 
                         <div className="flex-1 min-w-0">
-                          {/* Track + artists */}
+                          {/* Artist name as headline */}
                           <p className="text-white font-semibold text-sm leading-snug">
-                            {track.trackName}
-                          </p>
-                          <p className="text-xs mb-2" style={{ color: "rgba(180,200,255,0.5)" }}>
                             {track.artists.join(", ")}
                           </p>
 
@@ -215,7 +214,7 @@ export default function DiscoverPage() {
                             className="text-[11px] font-medium transition-opacity hover:opacity-80"
                             style={{ color: "#1ed760" }}
                           >
-                            {track.spotifyUrl ? "Open in Spotify ↗" : "Search on Spotify ↗"}
+                            Open on Spotify ↗
                           </a>
                         </div>
                       </div>

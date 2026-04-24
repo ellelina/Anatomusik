@@ -104,7 +104,7 @@ export default function LikedSongsPage() {
       <h1 className="text-2xl font-bold mb-2">Liked Songs</h1>
       {total > 0 && (
         <p className="text-neutral-500 text-sm mb-8">
-          {total} saved tracks — showing {offset + 1}–{Math.min(offset + pageSize, total)}
+          {total} saved tracks. Showing {offset + 1}–{Math.min(offset + pageSize, total)}
         </p>
       )}
 
@@ -113,7 +113,7 @@ export default function LikedSongsPage() {
       )}
 
       {stage === "analyzing" && (
-        <LoadingState title={`Analyzing ${trackDetails.length} tracks with AI...`} />
+        <LoadingState title={`Analyzing ${trackDetails.length} tracks...`} />
       )}
 
       {stage === "error" && (

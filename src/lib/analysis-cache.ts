@@ -3,9 +3,10 @@
  * Results expire after 2 hours so stale data from a previous session isn't served.
  */
 
-import { AnalysisResult, TasteTimelineEntry, RadarSuggestion } from "./types";
+import { AnalysisResult, TasteTimelineEntry, RadarSuggestion, RecentTrackDetail } from "./types";
 
 const KEY = "anatomusik_analysis";
+const TRACK_DETAILS_KEY = "anatomusik_track_details";
 const TIMELINE_KEY = "anatomusik_timeline";
 const RADAR_KEY = "anatomusik_radar";
 const TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
@@ -39,6 +40,9 @@ function load<T>(key: string): T | null {
 
 export const saveAnalysis = (r: AnalysisResult) => save(KEY, r);
 export const loadAnalysis = () => load<AnalysisResult>(KEY);
+
+export const saveTrackDetails = (t: RecentTrackDetail[]) => save(TRACK_DETAILS_KEY, t);
+export const loadTrackDetails = () => load<RecentTrackDetail[]>(TRACK_DETAILS_KEY);
 
 export const saveTimeline = (t: TasteTimelineEntry[]) => save(TIMELINE_KEY, t);
 export const loadTimeline = () => load<TasteTimelineEntry[]>(TIMELINE_KEY);

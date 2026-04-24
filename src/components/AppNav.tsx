@@ -14,7 +14,6 @@ import { useState } from "react";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/search", label: "Search" },
   { href: "/map", label: "Scene Map" },
   { href: "/tempo", label: "Tempo Lab" },
   { href: "/anatomy", label: "Sound Anatomy" },
@@ -27,14 +26,13 @@ const NAV_ITEMS = [
 const BOTTOM_TABS = [
   { href: "/dashboard", label: "Dashboard", icon: "▦" },
   { href: "/map",       label: "Map",       icon: "◎" },
-  { href: "/search",    label: "Search",    icon: "⌕" },
+  { href: "/discover",  label: "Discover",  icon: "✦" },
   { href: "/anatomy",   label: "Anatomy",   icon: "♫" },
 ];
 
 // Secondary items shown in "More" overlay
 const MORE_ITEMS = [
   { href: "/tempo",    label: "Tempo Lab" },
-  { href: "/discover", label: "Discover" },
   { href: "/history",  label: "History" },
   { href: "/share",    label: "Share" },
 ];

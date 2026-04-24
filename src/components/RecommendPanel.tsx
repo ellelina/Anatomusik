@@ -15,9 +15,10 @@ interface Recommendation {
 
 interface Props {
   track: TrackAnalysis;
+  spotifyGenres?: string[];
 }
 
-export default function RecommendPanel({ track }: Props) {
+export default function RecommendPanel({ track, spotifyGenres = [] }: Props) {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -27,19 +28,25 @@ export default function RecommendPanel({ track }: Props) {
     setError("");
     setRecommendations([]);
 
+    const payload = {
+      trackName: track.trackName,
+      artists: track.artists || [],
+      genres: track.genres || [],
+      spotifyGenres,
+      bpm: track.estimatedBpm,
+      mood: track.mood,
+    };
+
     fetch("/api/recommend", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        trackName: track.trackName,
-        artists: track.artists || [],
-        genres: track.genres || [],
-        bpm: track.estimatedBpm,
-        mood: track.mood,
-      }),
+      body: JSON.stringify(payload),
     })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to get recommendations");
+      .then(async (res) => {
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
         return res.json();
       })
       .then((data) => {
@@ -50,12 +57,12 @@ export default function RecommendPanel({ track }: Props) {
         setError(err.message);
         setLoading(false);
       });
-  }, [track.trackName, track.artists, track.genres, track.estimatedBpm, track.mood]);
+  }, [track.trackName, track.estimatedBpm, track.mood]);
 
   return (
     <div className="ml-4 mr-1 mt-1 mb-3 rounded-xl p-5" style={{ border: "1px solid rgba(180,200,255,0.12)", background: "rgba(150,180,255,0.04)" }}>
       <div className="flex items-center gap-2 mb-4">
-        <span className="text-sm font-semibold" style={{ color: "rgba(180,200,255,0.85)" }}>Similar Songs</span>
+        <span className="text-sm font-semibold" style={{ color: "rgba(180,200,255,0.85)" }}>Similar Artists</span>
         <span className="text-[11px] text-neutral-500">
           matching {(track.genres || []).join(" + ")} @ ~{track.estimatedBpm} BPM
         </span>
@@ -64,7 +71,7 @@ export default function RecommendPanel({ track }: Props) {
       {loading && (
         <div className="flex items-center gap-3 py-4">
           <div className="w-5 h-5 border-2 border-white/20 border-t-[rgba(160,184,255,0.9)] rounded-full animate-spin" />
-          <span className="text-sm text-neutral-400">Finding similar tracks...</span>
+          <span className="text-sm text-neutral-400">Finding similar artists...</span>
         </div>
       )}
 
@@ -118,12 +125,11 @@ function RecCard({
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="text-white text-sm font-medium truncate">
-              {rec.trackName}
+              {rec.artists.join(", ")}
               <span className="ml-2 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "rgba(180,200,255,0.6)" }}>
-                {rec.spotifyUrl ? "Open ↗" : "Search ↗"}
+                Open ↗
               </span>
             </p>
-            <p className="text-neutral-500 text-xs truncate">{rec.artists.join(", ")}</p>
           </div>
           <span className="flex-shrink-0 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full" style={{ background: "rgba(150,180,255,0.1)", color: "rgba(180,200,255,0.8)" }}>
             {rec.estimatedBpm}

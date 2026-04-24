@@ -167,8 +167,7 @@ export default function AnatomyPage() {
       <div className="mb-12">
         <h1 className="text-3xl font-bold text-white mb-3">Sound Anatomy</h1>
         <p className="text-neutral-400 text-lg leading-relaxed max-w-2xl">
-          Pick any song and we&apos;ll pull it apart into its individual sounds —
-          then explain each one in plain English.
+          Pick a song. We&apos;ll break it into its individual sounds and show you what each one does.
         </p>
       </div>
 
@@ -482,7 +481,7 @@ export default function AnatomyPage() {
             <div className="rounded-xl bg-white/[0.03] border border-white/10 p-6">
               <h3 className="text-white font-semibold mb-2">Find Similar Anatomy</h3>
               <p className="text-neutral-400 text-sm mb-4">
-                Discover songs built from the same sonic ingredients.
+                Artists built from the same sonic ingredients.
               </p>
               {!showSimilar ? (
                 <button
@@ -490,7 +489,7 @@ export default function AnatomyPage() {
                   className="w-full text-center px-4 py-3 rounded-xl font-medium text-sm transition-all hover:brightness-125"
                   style={{ background: "rgba(150,180,255,0.08)", border: "1px solid rgba(180,200,255,0.25)", color: "rgba(180,200,255,0.85)" }}
                 >
-                  Find 5 songs with the same sound anatomy as &ldquo;{trackAnalysis.trackName}&rdquo;
+                  Find artists with the same sound anatomy as &ldquo;{trackAnalysis.trackName}&rdquo;
                 </button>
               ) : (
                 <RecommendPanel track={trackAnalysis} />

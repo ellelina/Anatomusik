@@ -17,6 +17,12 @@ import { AnalysisResult, RecentTrackDetail, TasteTimelineEntry } from "@/lib/typ
 import GenreCard from "./GenreCard";
 import TrackList from "./TrackList";
 
+function truncateSentences(text: string, max = 3): string {
+  const sentences = text.match(/[^.!?]+[.!?]+\s*/g);
+  if (!sentences || sentences.length <= max) return text;
+  return sentences.slice(0, max).join("").trimEnd() + "…";
+}
+
 interface Props {
   result: AnalysisResult;
   trackDetails: RecentTrackDetail[];
@@ -152,7 +158,7 @@ export default function AnalysisResults({ result, trackDetails }: Props) {
         <TrackList
           tracks={result.trackAnalyses}
           trackDetails={trackDetails}
-          title="Recently Played — Click a Song for Recommendations"
+          title="Recently Played"
         />
       )}
 
@@ -165,15 +171,16 @@ export default function AnalysisResults({ result, trackDetails }: Props) {
           {result.uniqueInsights.map((insight, i) => (
             <li
               key={i}
-              className="flex gap-3 bg-white/5 border border-white/10 rounded-xl p-4"
+              className="flex gap-3 bg-white/5 border-t border-r border-b border-l-4 rounded-xl p-4"
+              style={{ borderLeftColor: "rgba(168,85,247,0.5)", borderTopColor: "rgba(255,255,255,0.08)", borderRightColor: "rgba(255,255,255,0.08)", borderBottomColor: "rgba(255,255,255,0.08)" }}
             >
               <span
-                className="text-lg leading-none mt-0.5"
-                style={{ color: "rgba(180,200,255,0.7)" }}
+                className="text-lg leading-none mt-0.5 flex-shrink-0"
+                style={{ color: "rgba(168,85,247,0.7)" }}
               >
                 *
               </span>
-              <p className="text-neutral-300 text-sm leading-relaxed">{insight}</p>
+              <p className="text-neutral-300 text-[15px] leading-7">{truncateSentences(insight)}</p>
             </li>
           ))}
         </ul>
@@ -196,7 +203,7 @@ export default function AnalysisResults({ result, trackDetails }: Props) {
         <div>
           <p className="text-sm font-medium text-white mb-0.5">Liked Songs</p>
           <p className="text-xs" style={{ color: "rgba(180,200,255,0.45)" }}>
-            Browse and analyze your saved tracks
+            Browse your saved tracks
           </p>
         </div>
         <span className="text-lg" style={{ color: "rgba(180,200,255,0.3)" }}>→</span>
